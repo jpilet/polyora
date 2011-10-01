@@ -1,0 +1,17 @@
+2010-03-30  Version 1.0.2
+
+	* Fixed a windows build issue in FindOpenCV.cmake (now searches for cv210.dll)
+	* Changed the detection threshold from 20 to 15
+
+2010-03-17  Version 1.0.1
+
+	* Help window in vobj_tracker and qtpolyora
+	* Speed improvement by getting rid of LMED when tracking
+	* Now ENABLE_PROFILE somewhat works with OpenMP
+	* Added this file
+	* Fixed other minor bugs
+
+2010-03-15  Version 1.0.0
+
+	* Initial release 
+

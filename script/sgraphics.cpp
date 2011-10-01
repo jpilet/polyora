@@ -1,4 +1,4 @@
-#include <QtOpengl>
+#include <QtOpenGL>
 #include "sgraphics.h"
 #include "homography.h"
 

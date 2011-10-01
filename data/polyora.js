@@ -1,5 +1,8 @@
 include('scenegraph.js');
 
+explosion = new Qt.Sound("Explosion.wav");
+
+
 //
 // test timing and animation
 //
@@ -103,7 +106,10 @@ var test_all = Sequence([
 //zurich = Polyora(46, q);
 //world = Color(function(t) { if (zurich.target.lost) return 1; else return 0; }, 0, 0, 1, q);
 
-world = test_all; //Polyora(47, q);
+zurich = Polyora(46, test_all);
+zurich.target.appeared.connect(function() { explosion.play(); });
+
+world = zurich;
 
 // Print a summary of our world
 world.print(0);

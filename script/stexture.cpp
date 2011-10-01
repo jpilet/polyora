@@ -152,8 +152,12 @@ QString STexture::frameFilename(unsigned frameno)
     return r;
 }
 
-template <class T>
-static T max(T a, T b)
+
+#ifdef max
+#undef max
+#endif
+template <typename T>
+T max(T a, T b)
 {
     return (a>b ? a:b);
 }
@@ -304,6 +308,7 @@ unsigned STexture::setLoopFromFrame(unsigned frameno)
     if (n < firstFrame) n=firstFrame;
     if (n >= lastFrame) n=lastFrame;
     loopFromFrame = n;
+    return updateCurrentFrame();
 }
 
 unsigned STexture::setLastFrame(unsigned frameno)

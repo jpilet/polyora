@@ -11,8 +11,8 @@ QT4_WRAP_CPP(QTKPT_MOC_FILES
     )
 
 ADD_LIBRARY(script
-    homography.cpp
     homography.h
+    homography.cpp
     script.cpp
     script.h
     sgraphics.cpp

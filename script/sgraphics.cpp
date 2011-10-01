@@ -44,7 +44,7 @@ QScriptValue SGraphics::homography(QScriptContext *context, QScriptEngine *engin
         r[i] = (float) (context->argument(0).property(i, QScriptValue::ResolveLocal).toNumber());
     }
     float H[3][3];
-    homography_from_4corresp(r+0, r+2, r+4, r+6, r+8, r+10, r+12, r+14, H);
+    script_homography::homography_from_4corresp(r+0, r+2, r+4, r+6, r+8, r+10, r+12, r+14, H);
 
     glPushMatrix();
     setupHomography(H);
@@ -117,7 +117,7 @@ void SGraphics::drawQuad(double x1, double y1, double x2, double y2, double x3, 
     float p2[] = {(float)x2,(float)y2};
     float p3[] = {(float)x3,(float)y3};
     float p4[] = {(float)x4,(float)y4};
-    homography_from_4pt(p1,p2,p3,p4,&H[0][0]);
+    script_homography::homography_from_4pt(p1,p2,p3,p4,&H[0][0]);
 
     glPushMatrix();
     setupHomography(H);

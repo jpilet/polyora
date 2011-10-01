@@ -4,6 +4,8 @@
 #include <assert.h>
 #include "homography.h"
 
+namespace script_homography {
+
 /* computes the homography sending [0,0] , [0,1], [1,1] and [1,0]
  * to x,y,z and w.
  */
@@ -126,3 +128,5 @@ void homography_from_4corresp(
 	assert(eps_cmp2(uv,w));
 #endif
 }
+
+}  // namespace

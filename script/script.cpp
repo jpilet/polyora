@@ -1,16 +1,17 @@
 #include "script.h"
 
 #include <QApplication>
-#include <QMetaObject>
-#include <QtScript>
-#include <QFileInfo>
 #include <QDir>
+#include <QFileInfo>
+#include <QMetaObject>
+#include <QSound>
+#include <QtScript>
 
+#include "sgraphics.h"
 #include "spoint.h"
+#include "spolyora_target.h"
 #include "stexture.h"
 #include "stime.h"
-#include "sgraphics.h"
-#include "spolyora_target.h"
 
 
 namespace {
@@ -47,6 +48,15 @@ QScriptValue includeScript(QScriptContext *context, QScriptEngine *engine)
     return engine->undefinedValue();
 }
 
+QScriptValue loadSound(QScriptContext *context, QScriptEngine *engine)
+{
+    if (context->argumentCount() != 1) {
+            return context->throwError(QString("sound: no filename passed."));
+    }
+    QString name = context->argument(0).toString();
+    return engine->newQObject(new QSound(name), QScriptEngine::ScriptOwnership);
+}
+
 }  // namespace
 
 struct QtMetaObject : private QObject
@@ -77,6 +87,8 @@ void Script::setup(QGLWidget *gl_context, visual_database* db, QApplication* app
     engine.globalObject().setProperty("Qt", Qt);
     QScriptValue qtimerClass = engine.scriptValueFromQMetaObject<QTimer>();
     Qt.setProperty("Timer", qtimerClass);
+
+    Qt.setProperty("Sound", engine.newFunction(loadSound,1));
 
     engine.globalObject().setProperty("include", engine.newFunction(includeScript,1));
 

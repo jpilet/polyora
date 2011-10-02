@@ -142,6 +142,7 @@ void SGraphics::drawQuad(double x1, double y1, double x2, double y2, double x3, 
         glTexCoord2f(p->getX(), p->getY());
         glVertex2d(1,0);
         glEnd();
+        glDisable(GL_TEXTURE_2D);
     } else {
         glBegin(GL_QUADS);
         glVertex2d(0,0);

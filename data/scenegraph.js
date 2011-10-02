@@ -690,6 +690,28 @@ CPolyora.prototype.draw = function() {
 }
 
 //
+// PolyoraRelTime Class
+//
+function CPolyoraRelTime(target_id, children) {
+	if (arguments.length==0) return;
+	this.children = make_array(children);
+	this.target = polyora.getTarget(target_id);
+	if (this.target == undefined) {
+	    throw("Polyora object " + target_id + " not found.");
+	}
+}
+this.PolyoraRelTime = apply_new(CPolyoraRelTime);
+CPolyoraRelTime.prototype = new CPolyora();
+CPolyoraRelTime.prototype.className = "PolyoraRelTime";
+CPolyoraRelTime.prototype.update = function(timebase) {
+    if (this.target.lost) {
+	return false;
+    } else {
+	return update_all_children(this.children, this.target.sinceLastAppeared);
+    }
+}
+
+//
 // Particles Class
 //
 function CParticles(params, c) {

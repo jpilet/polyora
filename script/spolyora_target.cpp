@@ -108,15 +108,16 @@ SPolyoraTarget::SPolyoraTarget(QObject* parent)
 bool SPolyoraTarget::update()
 {
     if (isDetected()) {
-        lost=false;
 	memcpy(&last_good_homography, instance->transform,
 		sizeof(last_good_homography));
         if (last_seen.isNull()) {
             last_seen.start();
             last_appeared.start();
+	    lost=false;
             emit appeared();
         } else if (last_seen.restart() > (int)(timeout*1000.0)) {
             last_appeared.restart();
+	    lost=false;
             emit appeared();
         }
         emit moved();

@@ -101,15 +101,21 @@ var test_all = Sequence([
 	StopAfter(10, test_particle),
        	]);
 
-// which test ?
-//var world = Polyora(47, test_all);
-//zurich = Polyora(46, q);
-//world = Color(function(t) { if (zurich.target.lost) return 1; else return 0; }, 0, 0, 1, q);
-
-zurich = Polyora(46, test_all);
+// "Polyora" changes the geometry, so that all relative children are drawn
+// relative to the reference image coordinates instead of screen coordinates.
+var zurich = Polyora(46, test_all);
 zurich.target.appeared.connect(function() { explosion.play(); });
 
-world = zurich;
+// With 'PolyoraRelTime', the time for children is relative to when the object appeared.
+// With 'Polyora', the time for children is not modified.
+// For example, with the following line, test_video2 will start from the
+// beginning every time the object appears.
+var hawking = PolyoraRelTime(47, test_video2);
+
+var test_polyora = Node([zurich, test_particle, hawking, Color(.2,.5,.6, .8, q) ]);
+
+// which test ?
+var world = test_polyora
 
 // Print a summary of our world
 world.print(0);

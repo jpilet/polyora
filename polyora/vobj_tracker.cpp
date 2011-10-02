@@ -443,9 +443,11 @@ bool vobj_tracker::verify(vobj_frame *frame, visual_object *obj, vobj_instance *
 		}
 	}
 
+	/*
 	if (success)
 		std::cout << "Matched " << inliers << " features, out of " << obj->nb_points() << " (" << 100.0f*inliers/obj->nb_points() 
 			<< "%)\n";
+	*/
 
 	cvReleaseMat(&mask);
 	cvReleaseMat(&frame_pts);

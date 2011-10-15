@@ -7,6 +7,7 @@
 #include <QSound>
 #include <QtScript>
 
+#include "sattachedpoint.h"
 #include "sgraphics.h"
 #include "spoint.h"
 #include "spolyora_target.h"
@@ -94,7 +95,7 @@ void Script::setup(QGLWidget *gl_context, visual_database* db, QApplication* app
 
     STime::installInEngine(&engine);
     SPoint::installInEngine(&engine);
-    //SAttachedPoint::installInEngine(&engine);
+    SAttachedPoint::installInEngine(&engine);
     //SModel::installInEngine(&engine);
     STexture::installInEngine(&engine, gl_context, frame_texture);
     engine.pushContext();    

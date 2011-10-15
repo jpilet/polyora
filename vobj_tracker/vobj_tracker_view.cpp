@@ -167,8 +167,10 @@ void vobj_tracker_view::timerEvent(QTimerEvent *) {
 		TaskTimer::pushTask("Process frame");
 		vobj_frame *pframe = static_cast<vobj_frame *>(tracker->process_frame_pipeline(frame));
 
-		if (pframe)
+		if (pframe) {
 			setImage(pframe->pyr->images[0]);
+			pframe->timestamp = time_since_started.elapsed();
+		}
 
 
 		tracker->remove_unmatched_tracks(tracker->get_nth_frame(2));
@@ -450,6 +452,7 @@ void vobj_tracker_view::createTracker()
 		script_engine.runScript("polyora.js");
 
 		cout << "Ready. Press F1 for help.\n";
+		time_since_started.start();
 	}
 }
 

@@ -8,11 +8,14 @@ QT4_WRAP_CPP(QTKPT_MOC_FILES
     spolyora_target.h
     stexture.h
     stime.h
+    sattachedpoint.h
     )
 
 ADD_LIBRARY(script
     homography.h
     homography.cpp
+    sattachedpoint.cpp
+    sattachedpoint.h
     script.cpp
     script.h
     sgraphics.cpp

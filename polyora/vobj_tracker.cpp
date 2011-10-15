@@ -499,9 +499,16 @@ vobj_keypoint *vobj_frame::find_closest_match(float u, float v, float radius)
 	return best_match;
 }
 
-vobj_instance *vobj_frame::find_instance(visual_object *obj)
+vobj_instance *vobj_frame::find_instance(const visual_object *obj)
 {
 	for (vobj_instance_vector::iterator it=visible_objects.begin(); it!=visible_objects.end(); ++it)
+		if (it->object == obj) return &(*it);
+	return 0;
+}
+
+const vobj_instance *vobj_frame::find_instance(const visual_object *obj) const
+{
+	for (vobj_instance_vector::const_iterator it=visible_objects.begin(); it!=visible_objects.end(); ++it)
 		if (it->object == obj) return &(*it);
 	return 0;
 }

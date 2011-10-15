@@ -129,4 +129,28 @@ void homography_from_4corresp(
 #endif
 }
 
+// Compute the inverse homography and returns the determinant of m.
+float homography_inverse(const float m[3][3], float dst[3][3])
+{
+    float t4 = m[0][0]*m[1][1];
+    float t6 = m[0][0]*m[1][2];
+    float t8 = m[0][1]*m[1][0];
+    float t10 = m[0][2]*m[1][0];
+    float t12 = m[0][1]*m[2][0];
+    float t14 = m[0][2]*m[2][0];
+    float t16 = (t4*m[2][2]-t6*m[2][1]-t8*m[2][2]+t10*m[2][1]+t12*m[1][2]-t14*m
+	    [1][1]);
+    float t17 = 1/t16;
+    dst[0][0] = (m[1][1]*m[2][2]-m[1][2]*m[2][1])*t17;
+    dst[0][1] = -(m[0][1]*m[2][2]-m[0][2]*m[2][1])*t17;
+    dst[0][2] = -(-m[0][1]*m[1][2]+m[0][2]*m[1][1])*t17;
+    dst[1][0] = -(m[1][0]*m[2][2]-m[1][2]*m[2][0])*t17;
+    dst[1][1] = (m[0][0]*m[2][2]-t14)*t17;
+    dst[1][2] = -(t6-t10)*t17;
+    dst[2][0] = -(-m[1][0]*m[2][1]+m[1][1]*m[2][0])*t17;
+    dst[2][1] = -(m[0][0]*m[2][1]-t12)*t17;
+    dst[2][2] = (t4-t8)*t17;
+    return t16;
+}
+
 }  // namespace

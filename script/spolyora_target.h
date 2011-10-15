@@ -11,8 +11,9 @@
 #include "../polyora/visual_database.h"
 #include "../polyora/vobj_tracker.h"
 
-class SPolyoraTarget;
 class QScriptEngine;
+class SPoint;
+class SPolyoraTarget;
 
 /*
 The script conterpart of a visual_database. Takes care of sending
@@ -55,6 +56,7 @@ class SPolyoraTarget : public QObject {
     Q_PROPERTY(double sinceLastSeen READ timeSinceLastSeen)
     Q_PROPERTY(double sinceLastAppeared READ timeSinceLastAppeared)
     Q_PROPERTY(double disappearTimeout READ getDisappearTimeout WRITE setDisappearTimeout)
+    Q_PROPERTY(double timeout READ getDisappearTimeout WRITE setDisappearTimeout)
 
 signals:
     void moved();
@@ -69,8 +71,9 @@ public:
 
     // Transmit the tracking result to the SPolyoraTarget object.
     // If <instance> is null, tracking failed.
-    void setInstance(const vobj_instance* instance) {
+    void setInstance(const vobj_instance* instance, const vobj_frame* frame) {
 	this->instance = instance;
+	this->frame = frame;
     }
 
     // Returns true if the object wants to be informed about next frame result.
@@ -81,6 +84,9 @@ public:
 public slots:
     void pushTransform();
     void popTransform();
+    bool transformPoint(const SPoint* src, SPoint* dst);
+    bool inverseTransformPoint(const SPoint* src, SPoint* dst);
+    bool getSpeed(float x, float y, SPoint* dst);
 
 private:
     // units: seconds. If the object has never been seen, returns -1
@@ -93,6 +99,7 @@ private:
     double getDisappearTimeout() const { return timeout; }
 
     const vobj_instance* instance;
+    const vobj_frame* frame;
     QTime last_seen;
     QTime last_appeared;
     bool lost;

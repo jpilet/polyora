@@ -5,6 +5,10 @@
 #include <QScriptEngine>
 #include <QGLWidget>
 
+#include "homography.h"
+#include "spoint.h"
+#include "sattachedpoint.h"
+
 using std::map;
 
 QString SPolyoraTargetCollection::idToName(long id) {
@@ -28,7 +32,7 @@ void SPolyoraTargetCollection::processFrame(const vobj_frame* frame) {
     // All active objects disappear by default.
     for (map<long, SPolyoraTarget*>::iterator it(active_objects.begin());
 	 it != active_objects.end(); ++it) {
-	it->second->setInstance(0);
+	it->second->setInstance(0, 0);
     }
 
     // (re)activates all targets visible in <frame>
@@ -39,7 +43,7 @@ void SPolyoraTargetCollection::processFrame(const vobj_frame* frame) {
 	SPolyoraTarget* target = findChild<SPolyoraTarget*>(idToName(id));
 	if (target != 0) {
 	    active_objects[id] = target;
-	    target->setInstance(&*it);
+	    target->setInstance(&*it, frame);
 	}
     }
 
@@ -79,6 +83,38 @@ QScriptValue getTargetScript(
     return engine->newQObject(target, QScriptEngine::QtOwnership);
 }
 
+QScriptValue attachScript(
+	QScriptContext *context, QScriptEngine *engine) {
+    SPolyoraTarget* _this = qobject_cast<SPolyoraTarget*>(
+	    context->thisObject().toQObject());
+    if (_this == 0) {
+	return context->throwError(QScriptContext::TypeError,
+		"SPolyoraTarget.attach: invalid type of 'this' "
+		"object.");
+    }
+
+    if (context->argumentCount() < 1) {
+	return context->throwError(QScriptContext::TypeError,
+		"SPolyoraTarget.attach takes a 2d point as argument");
+    }
+    float x, y;
+    if (context->argumentCount() == 1) {
+	SPoint *a = qobject_cast<SPoint *>(context->argument(0).toQObject());
+	if (!a) {
+	    return context->throwError(QScriptContext::TypeError,
+		    "SPolyoraTarget.attach takes a 2d point as argument");
+	}
+	x = a->getX();
+	y = a->getY();
+    } else {
+	x = (float)context->argument(0).toNumber();
+	y = (float)context->argument(1).toNumber();
+    }
+    return engine->newQObject(new SAttachedPoint(_this, x, y),
+	    QScriptEngine::ScriptOwnership);
+}
+
+
 void setupHomography(const float H[3][3])
 {
 	float m[4][4];
@@ -92,10 +128,21 @@ void setupHomography(const float H[3][3])
 	glMultMatrixf(&m[0][0]);
 }
 
+
+QScriptValue polyoraTargetToScriptValue(QScriptEngine *engine, SPolyoraTarget* const  &in)
+{ return engine->newQObject(in); }
+
+void polyoraTargetFromScriptValue(const QScriptValue &object, SPolyoraTarget* &out)
+ { out = qobject_cast<SPolyoraTarget *>(object.toQObject()); }
+
 }  // namespace.
 
 void SPolyoraTargetCollection::installInEngine(QScriptEngine* engine) {
-    qRegisterMetaType<SPolyoraTarget *>();
+    QScriptValue prototype = engine->newObject();
+    prototype.setProperty("attach", engine->newFunction(attachScript, 2));
+    qScriptRegisterMetaType(engine, polyoraTargetToScriptValue,
+	    polyoraTargetFromScriptValue, prototype);
+
     QScriptValue polyora = 
 	    engine->newQObject(this, QScriptEngine::QtOwnership);
     engine->globalObject().setProperty("polyora", polyora);
@@ -144,14 +191,70 @@ double SPolyoraTarget::timeSinceLastAppeared() const
 }
 
 void SPolyoraTarget::pushTransform() {
-	glMatrixMode(GL_MODELVIEW);
-	glPushMatrix();
-	if (!lost) {
-	    setupHomography(last_good_homography);
-	}
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    if (!lost) {
+	setupHomography(last_good_homography);
+    }
 }
 
 void SPolyoraTarget::popTransform() {
-	glMatrixMode(GL_MODELVIEW);
-	glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+}
+
+bool SPolyoraTarget::transformPoint(const SPoint* src, SPoint* dst) {
+    if (!src || !dst || !isDetected()) {
+	return false;
+    }
+    const float input[] = { src->getX(), src->getY() };
+    float transformed[2];
+    script_homography::homography_transform(input, instance->transform, transformed);
+    dst->move(transformed[0], transformed[1]);
+}
+
+bool SPolyoraTarget::inverseTransformPoint(const SPoint* src, SPoint* dst) {
+    if (!src || !dst || !isDetected()) {
+	return false;
+    }
+    const float input[] = { src->getX(), src->getY() };
+    float transformed[2];
+    float inverse[3][3];
+    // TODO: cache the inversion.
+    script_homography::homography_inverse(instance->transform, inverse);
+    script_homography::homography_transform(input, inverse, transformed);
+    dst->move(transformed[0], transformed[1]);
+}
+
+bool SPolyoraTarget::getSpeed(float x, float y, SPoint* dst) {
+    if (!isDetected()) {
+	return false;
+    }
+
+    // scan at most 10 frames in the past to search for a previous position.
+    const vobj_instance* prev_instance = 0; 
+    const vobj_frame* prev_frame = frame; 
+    for (int i = 0; i < 10; i++) {
+	prev_frame = static_cast<const vobj_frame*>(prev_frame->frames.next);
+	if (!prev_frame) {
+	    return false;
+	}
+	prev_instance = prev_frame->find_instance(instance->object);
+	if (prev_instance) {
+	    break;
+	}
+    }
+    if (!prev_instance) {
+	return false;
+    }
+
+    const float input[] = {x, y};
+    float transformed[2];
+    script_homography::homography_transform(input, instance->transform, transformed);
+    float prev_transformed[2];
+    script_homography::homography_transform(input, prev_instance->transform, prev_transformed);
+    float time_delta = (frame->timestamp - prev_frame->timestamp) / 1000.0;
+    dst->move((transformed[0] - prev_transformed[0]) / time_delta,
+	      (transformed[1] - prev_transformed[1]) / time_delta);
+    return true;
 }

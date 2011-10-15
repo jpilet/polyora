@@ -136,6 +136,7 @@ private:
 	QWidget *help_window;
 
 	Script script_engine;
+	QTime time_since_started;
 };
 
 #endif

@@ -76,10 +76,12 @@ class vobj_frame : public pyr_frame
 {
 public:
 	vobj_instance_vector visible_objects;
+	int timestamp;
 
-	vobj_frame(PyrImage *p, int bits=4) : pyr_frame(p, bits) {} 
+	vobj_frame(PyrImage *p, int bits=4) : pyr_frame(p, bits) { } 
 
-	vobj_instance *find_instance(visual_object *obj);
+	vobj_instance *find_instance(const visual_object *obj);
+	const vobj_instance *find_instance(const visual_object *obj) const;
 	vobj_keypoint *find_closest_match(float u, float v, float radius);
 
 	struct vobj_frame_factory_t : pyr_frame_factory_t {

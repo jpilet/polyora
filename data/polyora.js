@@ -92,6 +92,31 @@ var test_particle = Translate(function(t){ return particle.update(t); }, q);
 var test_trigger = 
 	Trigger(function(t) { return t>3; }, StopAfter(2,Color(1,0,0,1, q)), Color(0,0,0,1, q));
 
+// Shows a quad in the middle of the screen.
+// The function in Translate shifts the quad proportionally to the target
+// speed.
+var motion_target = polyora.getTarget(49);
+var test_motion = Translate(function(t) {
+	var speed = newPoint(0, 0);
+	// Return the speed of point 320,200 on the target
+	// units: screen pixels per second.
+	motion_target.getSpeed(320, 200, speed);
+	speed.mul(.3);
+	speed.add(320, 200);
+	return speed;
+	}, q);
+
+
+// This example shows how to attach a point to a target.
+// The arguments to 'attach' is a point in object coordinates.
+// attached_point is a point in screen coordinates.
+var attached_point = motion_target.attach(320, 200);
+
+// Translate a colored square so that its top-left corner aligns with
+// the attached point.
+var test_attachment = Translate(attached_point, Color(.4,.1,.7,1, q));
+
+
 var test_all = Sequence([
 	StopAfter(10, test_timing),
 	StopAfter(10, test_image),
@@ -104,7 +129,7 @@ var test_all = Sequence([
 // "Polyora" changes the geometry, so that all relative children are drawn
 // relative to the reference image coordinates instead of screen coordinates.
 var zurich = Polyora(46, test_all);
-zurich.target.appeared.connect(function() { explosion.play(); });
+//zurich.target.appeared.connect(function() { explosion.play(); });
 
 // With 'PolyoraRelTime', the time for children is relative to when the object appeared.
 // With 'Polyora', the time for children is not modified.
@@ -115,7 +140,7 @@ var hawking = PolyoraRelTime(47, test_video2);
 var test_polyora = Node([zurich, test_particle, hawking, Color(.2,.5,.6, .8, q) ]);
 
 // which test ?
-var world = test_polyora
+var world = test_motion; //Polyora(49, test_attachment);
 
 // Print a summary of our world
 world.print(0);

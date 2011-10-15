@@ -2,25 +2,26 @@
 #define SATTACHEDPOINT_H
 
 #include "spoint.h"
-#include "softmatch.h"
 #include <QtScript>
 
-class SModel;
+class SPolyoraTarget;
 
 class SAttachedPoint : public SPoint
 {
     Q_OBJECT
     Q_PROPERTY(SPoint * src READ getSrc)
     Q_PROPERTY(bool isAttached READ isAttached)
+    Q_PROPERTY(bool isValid READ isValid)
 
 public:
     SAttachedPoint();
-    SAttachedPoint(SModel *m, double x, double y);
-    SAttachedPoint(SModel *m);
+    SAttachedPoint(SPolyoraTarget *m, double x, double y);
+    SAttachedPoint(SPolyoraTarget *m);
 
-    Q_INVOKABLE bool attach(SModel *m, double x, double y);
+    Q_INVOKABLE bool attach(SPolyoraTarget *m, double x, double y);
 
-    bool isAttached() { return attached && model!=0; }
+    bool isAttached() const { return model!=0; }
+    bool isValid() const;
     SPoint *getSrc() { return &src; }
 
     static void installInEngine(QScriptEngine *engine);
@@ -34,9 +35,7 @@ public slots:
 
 protected:
     SPoint src;
-    SoftMatcher::TrigModelPoint mp;
-    SModel *model;
-    bool attached;
+    SPolyoraTarget *model;
 };
 
 Q_DECLARE_METATYPE(SAttachedPoint *)

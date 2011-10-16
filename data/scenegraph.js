@@ -743,3 +743,41 @@ CParticles.prototype.draw = function() {
 		p.draw();
 	}
 }
+
+
+//
+// State machine class.
+//
+this.StateMachine = function() {
+    this.states = { };
+    this.children = [];
+    this.current_state = "";
+    this.delay = 0;
+    this.current_time = 0;
+}
+StateMachine.prototype = new CNode();
+StateMachine.prototype.className = "StateMachine";
+StateMachine.prototype.addState = function(state_name, children, transition) {
+    this.states[state_name] = {
+	"children" : make_array(children),
+	"transition" : transition
+    };
+}
+
+StateMachine.prototype.setState = function(new_state) {
+    if (new_state == this.current_state)
+	return;
+
+    this.current_state = new_state;
+    this.children = this.states[new_state].children;
+    this.transition = this.states[new_state].transition;
+    this.delay = this.current_time;
+    this.children_active = update_all_children(this.children, 0); 
+}
+
+StateMachine.prototype.update = function(timebase) {
+    this.current_time = timebase;
+    this.children_active = update_all_children(this.children, timebase - this.delay); 
+    this.transition(timebase - this.delay, this, this.children_active);
+    return this.children_active;
+}

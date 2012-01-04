@@ -715,12 +715,18 @@ void PerspectiveCamera::setPoseFromHomography(const double H_array[3][3]) {
     const double n0 = norm(KinvH.col(0));
     const double n1 = norm(KinvH.col(1));
 
+    cout << "n0: " << n0 << ", n1: " << n1 << endl;
+
     Mat3x4 wte;
     cv::Mat result = cv::Mat(3, 4, CV_64FC1, wte.m);
-    result.col(0) = KinvH.col(0) / n0;
-    result.col(1) = KinvH.col(1) / n1;
-    result.col(2) = result.col(0).cross(result.col(1));
-    result.col(3) = KinvH.col(2) * ((n0 + n1) * .5);
+    cv::Mat col0 = result.col(0);
+    cv::Mat col1 = result.col(1);
+    cv::Mat col2 = result.col(2);
+
+    col0 = KinvH.col(0) / n0;
+    col1 = KinvH.col(1) / n1;
+    col0.cross(col1).copyTo(col2);
+    result.col(3) = KinvH.col(2) / ((n0 + n1) * .5);
 
     setWorldToEyeMat(wte);
 }

@@ -364,6 +364,7 @@ GLuint track3d_view::get_texture_for_obj(visual_object *obj)
 }
 
 void track3d_view::augment3d(visual_object *obj, float H[3][3]) {
+
 	// Create a calibrated camera object.
 	PerspectiveCamera camera;
 	// These constants come from opencv's calibration file.
@@ -387,6 +388,9 @@ void track3d_view::augment3d(visual_object *obj, float H[3][3]) {
 	}
 
 	camera.setPoseFromHomography(Hd);
+	camera.flip();
+
+    cout << camera << endl;
 
 	double matrix[4][4];
 	glMatrixMode(GL_PROJECTION);
@@ -405,7 +409,7 @@ void track3d_view::augment3d(visual_object *obj, float H[3][3]) {
 	glVertex3f(0,0,0);
 	glVertex3f(0,480,0);
 	glVertex3f(0,0,0);
-	glVertex3f(0,0,500);
+	glVertex3f(0,0,-500);
 	glEnd();
 
 	glMatrixMode(GL_PROJECTION);
@@ -487,8 +491,8 @@ void track3d_view::paintGL()
 
 	//draw_keypoints(frame);
 
-	if (draw_flags & DRAW_INSTANCE)
-		draw_instances(frame);
+	//if (draw_flags & DRAW_INSTANCE)
+	draw_instances(frame);
 
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);

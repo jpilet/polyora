@@ -52,8 +52,6 @@ protected slots:
 	/*! display everything in an opengl viewport */
 	void paintGL();
 
-	void show_help();
-
 private:
 	// idle timer
 	int timer;
@@ -122,7 +120,6 @@ private:
 	void draw_instances(vobj_frame *frame);
 	GLuint get_texture_for_obj(visual_object *obj);
 
-	QWidget *help_window;
 };
 
 #endif

@@ -61,8 +61,6 @@ track3d_view::track3d_view(QWidget *parent, const char *name, VideoSource *vs)
 	descriptors_fn = "descriptors.dat";
 	visual_db_fn = "visual.db";
 
-	help_window=0;
-
 	//query_flags = incremental_query::QUERY_IDF|incremental_query::QUERY_NORMALIZED_FREQ;
 
 	nb_missing_frames=0;
@@ -103,7 +101,6 @@ track3d_view::~track3d_view() {
 	if (im2) cvReleaseImage(&im2);
 	if (vs) delete vs;
 	if (tracker) delete tracker;
-	if (help_window) delete help_window;
 }
 
 void track3d_view::timerEvent(QTimerEvent *) {
@@ -325,7 +322,7 @@ void track3d_view::createTracker()
 				cout << "failed.\n";
 			}
 		}
-		cout << "Ready. Press F1 for help.\n";
+		cout << "Ready.\n";
 	}
 }
 
@@ -370,7 +367,7 @@ void track3d_view::augment3d(visual_object *obj, float H[3][3]) {
 	// Create a calibrated camera object.
 	PerspectiveCamera camera;
 	// These constants come from opencv's calibration file.
-	cam.set(640, 480, // image_width, image_height
+	camera.set(640, 480, // image_width, image_height
 
 		// the following are the fields of camera_matrix:
 		// data[0], data[4], data[2], data[5]
@@ -382,18 +379,25 @@ void track3d_view::augment3d(visual_object *obj, float H[3][3]) {
 	// camera.resizeImage( width, height );
 
 	// Update the pose
-	camera.setPoseFromHomography(H);
+	double Hd[3][3];
+	for (int i = 0; i< 3; ++i) {
+	    for (int j = 0; j< 3; ++j) {
+		Hd[i][j] = H[i][j];
+	    }
+	}
+
+	camera.setPoseFromHomography(Hd);
 
 	double matrix[4][4];
 	glMatrixMode(GL_PROJECTION);
 	camera.getGlProjection(matrix);
 	glPushMatrix();
-	glLoadMatrixd(matrix);
+	glLoadMatrixd(&matrix[0][0]);
 
 	glMatrixMode(GL_MODELVIEW);
 	camera.getGlModelView(matrix);
 	glPushMatrix();
-	glLoadMatrixd(matrix);
+	glLoadMatrixd(&matrix[0][0]);
 
 	glBegin(GL_LINES);
 	glVertex3f(0,0,0);
@@ -482,17 +486,9 @@ void track3d_view::paintGL()
 	setImageSpace();
 
 	//draw_keypoints(frame);
-	if (draw_flags & DRAW_MATCHES)
-		draw_matches(frame);
 
 	if (draw_flags & DRAW_INSTANCE)
 		draw_instances(frame);
-
-	if (draw_flags & DRAW_KEYPOINTS)
-		draw_keypoints(frame);
-
-	if (draw_flags & DRAW_TRACKS)
-		draw_all_tracks(frame);
 
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);

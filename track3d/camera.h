@@ -96,7 +96,7 @@ public:
   virtual void flip(); 
   virtual void resizeImage(int newW, int newH);
 
-  void setPoseFromHomography(float H[3][3]);
+  void setPoseFromHomography(const double H[3][3]);
 
 protected:
   // extrinsic parameters

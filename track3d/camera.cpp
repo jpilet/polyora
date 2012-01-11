@@ -4,6 +4,8 @@
 #include "camera.h"
 #include "matvec.h"
 
+#include <opencv/cv.h>
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -677,9 +679,49 @@ ostream& operator << (ostream& os, const PerspectiveCamera &cam)
   return os;
 }
 
-void PerspectiveCamera::setPoseFromHomography(float H[3][3]) {
-	Mat3x3 Kinv;
-	inverse(eyeToImageMat.m, Kinv.m);
-	Mat3x3 KinvH = Kinv * H;
+
+static void inverse(const double m[3][3], double dst[3][3])
+{
+    double t4 = m[0][0]*m[1][1];
+    double t6 = m[0][0]*m[1][2];
+    double t8 = m[0][1]*m[1][0];
+    double t10 = m[0][2]*m[1][0];
+    double t12 = m[0][1]*m[2][0];
+    double t14 = m[0][2]*m[2][0];
+    double t16 = (t4*m[2][2]-t6*m[2][1]-t8*m[2][2]+t10*m[2][1]+t12*m[1][2]-t14*m
+	    [1][1]);
+    double t17 = 1/t16;
+    dst[0][0] = (m[1][1]*m[2][2]-m[1][2]*m[2][1])*t17;
+    dst[0][1] = -(m[0][1]*m[2][2]-m[0][2]*m[2][1])*t17;
+    dst[0][2] = -(-m[0][1]*m[1][2]+m[0][2]*m[1][1])*t17;
+    dst[1][0] = -(m[1][0]*m[2][2]-m[1][2]*m[2][0])*t17;
+    dst[1][1] = (m[0][0]*m[2][2]-t14)*t17;
+    dst[1][2] = -(t6-t10)*t17;
+    dst[2][0] = -(-m[1][0]*m[2][1]+m[1][1]*m[2][0])*t17;
+    dst[2][1] = -(m[0][0]*m[2][1]-t12)*t17;
+    dst[2][2] = (t4-t8)*t17;
+}
+
+/*
+  Projection:
+   u = K * Rt * [x,y,0,1]' = H * [x,y,1]'
+   inv(K) * H = lambda * [R1 R2 T]
+*/
+
+void PerspectiveCamera::setPoseFromHomography(const double H_array[3][3]) {
+    const cv::Mat H = cv::Mat(3, 3, CV_64FC1, const_cast<double *>(&H_array[0][0]));
+    const cv::Mat K = cv::Mat(3, 3, CV_64FC1, eyeToImageMat.m);
+    const cv::Mat KinvH = K.inv() * H;
+    const double n0 = norm(KinvH.col(0));
+    const double n1 = norm(KinvH.col(1));
+
+    Mat3x4 wte;
+    cv::Mat result = cv::Mat(3, 4, CV_64FC1, wte.m);
+    result.col(0) = KinvH.col(0) / n0;
+    result.col(1) = KinvH.col(1) / n1;
+    result.col(2) = result.col(0).cross(result.col(1));
+    result.col(3) = KinvH.col(2) * ((n0 + n1) * .5);
+
+    setWorldToEyeMat(wte);
 }
 

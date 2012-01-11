@@ -390,7 +390,7 @@ void track3d_view::augment3d(visual_object *obj, float H[3][3]) {
 	camera.setPoseFromHomography(Hd);
 	camera.flip();
 
-    cout << camera << endl;
+	// cout << camera << endl;
 
 	double matrix[4][4];
 	glMatrixMode(GL_PROJECTION);

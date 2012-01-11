@@ -715,7 +715,7 @@ void PerspectiveCamera::setPoseFromHomography(const double H_array[3][3]) {
     const double n0 = norm(KinvH.col(0));
     const double n1 = norm(KinvH.col(1));
 
-    cout << "n0: " << n0 << ", n1: " << n1 << endl;
+    // cout << "n0: " << n0 << ", n1: " << n1 << endl;
 
     Mat3x4 wte;
     cv::Mat result = cv::Mat(3, 4, CV_64FC1, wte.m);

@@ -58,12 +58,14 @@ IF(APPLE)
 ENDIF(APPLE)
 
 # OpenCV
+SET(OpenCV_LIB_COMPONENTS opencv_features2d opencv_video opencv_highgui opencv_imgproc opencv_core )
 FIND_PACKAGE(OpenCV REQUIRED)
 IF(OpenCV_FOUND) 
 	MESSAGE(STATUS "Looking for OpenCV - found")
 ELSE(OpenCV_FOUND) 
 	MESSAGE(FATAL_ERROR "Looking for OpenCV - not found")
 ENDIF(OpenCV_FOUND)
+SET(OpenCV_LIBS ${OpenCV_LIBS} -ltiff -lz -ljpeg -lpng)
 SET(OpenCV_LIBRARIES ${OpenCV_LIBS})
 
 # SiftGPU depends on a lot of stuff

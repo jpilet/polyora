@@ -31,6 +31,8 @@
 #include <math.h>
 #include <highgui.h>
 
+#include <GL/glew.h>
+
 using namespace std;
 
 #include <qpixmap.h>

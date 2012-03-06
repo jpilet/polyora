@@ -917,7 +917,7 @@ icvGetRTMatrix( const CvPoint2D32f* a, const CvPoint2D32f* b,
 
 
 CV_IMPL int
-cvEstimateRigidTransform( const CvArr* _A, const CvArr* _B, CvMat* _M, int full_affine )
+mycvEstimateRigidTransform( const CvArr* _A, const CvArr* _B, CvMat* _M, int full_affine )
 {
     int result = 0;
     

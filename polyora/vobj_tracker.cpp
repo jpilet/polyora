@@ -30,6 +30,19 @@
 static vobj_keypoint::vobj_keypoint_factory_t default_vobj_keypoint_factory;
 static vobj_frame::vobj_frame_factory_t default_vobj_frame_factory;
 
+namespace {
+bool homography_is_plausible(float H[3][3]) {
+    float trace = H[0][0] + H[1][1];
+    float half_trace = trace * 0.5f;
+    float det = H[0][0] * H[1][1] - H[0][1] * H[1][0];
+    float delta = sqrtf(trace * trace * .25f - det);
+    float l1 = half_trace + delta;
+    float l2 = half_trace - delta;
+    float ratio = l1 / l2;
+    return  (l1 < 3*l2 && l2 < 3*l1);
+}
+}
+
 vobj_tracker::vobj_tracker(int width, int height, int levels, int max_motion,
 		visual_database *vdb, bool glContext,
 		pyr_keypoint::pyr_keypoint_factory_t *kf,
@@ -43,7 +56,7 @@ vobj_tracker::vobj_tracker(int width, int height, int levels, int max_motion,
 	vdb(vdb)
 {
 	score_threshold=.00;
-	homography_corresp_threshold = 15;
+	homography_corresp_threshold = 10;
 	fmat_corresp_threshold = 20;
 	max_results=3;
 	use_incremental_learning=true;
@@ -347,7 +360,9 @@ bool vobj_tracker::verify(vobj_frame *frame, visual_object *obj, vobj_instance *
 					// refine with LMEDS
 					obj_pts->rows = support;
 					frame_pts->rows = support;
-					r = cvFindHomography(obj_pts, frame_pts, M, CV_LMEDS);
+					if (homography_is_plausible(instance->transform)) {
+					    r = cvFindHomography(obj_pts, frame_pts, M, CV_LMEDS);
+					}
 				} else {
 					r=0;
 				}

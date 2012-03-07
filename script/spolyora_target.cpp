@@ -129,19 +129,24 @@ void setupHomography(const float H[3][3])
 }
 
 
-QScriptValue polyoraTargetToScriptValue(QScriptEngine *engine, SPolyoraTarget* const  &in)
+template<class T>
+QScriptValue polyoraXToScriptValue(QScriptEngine *engine, T* const  &in)
 { return engine->newQObject(in); }
 
-void polyoraTargetFromScriptValue(const QScriptValue &object, SPolyoraTarget* &out)
- { out = qobject_cast<SPolyoraTarget *>(object.toQObject()); }
+template<class T>
+void polyoraXFromScriptValue(const QScriptValue &object, T* &out)
+ { out = qobject_cast<T *>(object.toQObject()); }
 
 }  // namespace.
 
 void SPolyoraTargetCollection::installInEngine(QScriptEngine* engine) {
     QScriptValue prototype = engine->newObject();
     prototype.setProperty("attach", engine->newFunction(attachScript, 2));
-    qScriptRegisterMetaType(engine, polyoraTargetToScriptValue,
-	    polyoraTargetFromScriptValue, prototype);
+    qScriptRegisterMetaType(engine, polyoraXToScriptValue<SPolyoraTarget>,
+	    polyoraXFromScriptValue<SPolyoraTarget>, prototype);
+    prototype = engine->newObject();
+    qScriptRegisterMetaType(engine, polyoraXToScriptValue<SPolyoraHomography>,
+	    polyoraXFromScriptValue<SPolyoraHomography>, prototype);
 
     QScriptValue polyora = 
 	    engine->newQObject(this, QScriptEngine::QtOwnership);
@@ -150,13 +155,13 @@ void SPolyoraTargetCollection::installInEngine(QScriptEngine* engine) {
 }
 
 SPolyoraTarget::SPolyoraTarget(QObject* parent)
-    : QObject(parent), instance(0), lost(true), timeout(1) { }
+    : QObject(parent), instance(0), lost(true), timeout(1),
+    last_good_homography(new SPolyoraHomography(parent)) { }
 
 bool SPolyoraTarget::update()
 {
     if (isDetected()) {
-	memcpy(&last_good_homography, instance->transform,
-		sizeof(last_good_homography));
+	last_good_homography->copyFrom(instance->transform);
         if (last_seen.isNull()) {
             last_seen.start();
             last_appeared.start();
@@ -190,38 +195,36 @@ double SPolyoraTarget::timeSinceLastAppeared() const
     return last_appeared.elapsed() /1000.0;
 }
 
-void SPolyoraTarget::pushTransform() {
+void SPolyoraHomography::pushTransform() {
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
-    if (!lost) {
-	setupHomography(last_good_homography);
-    }
+    setupHomography(H);
 }
 
-void SPolyoraTarget::popTransform() {
+void SPolyoraHomography::popTransform() {
     glMatrixMode(GL_MODELVIEW);
     glPopMatrix();
 }
 
-bool SPolyoraTarget::transformPoint(const SPoint* src, SPoint* dst) {
-    if (!src || !dst || !isDetected()) {
+bool SPolyoraHomography::transformPoint(const SPoint* src, SPoint* dst) {
+    if (!src || !dst) {
 	return false;
     }
     const float input[] = { src->getX(), src->getY() };
     float transformed[2];
-    script_homography::homography_transform(input, instance->transform, transformed);
+    script_homography::homography_transform(input, H, transformed);
     dst->move(transformed[0], transformed[1]);
 }
 
-bool SPolyoraTarget::inverseTransformPoint(const SPoint* src, SPoint* dst) {
-    if (!src || !dst || !isDetected()) {
+bool SPolyoraHomography::inverseTransformPoint(const SPoint* src, SPoint* dst) {
+    if (!src || !dst) {
 	return false;
     }
     const float input[] = { src->getX(), src->getY() };
     float transformed[2];
     float inverse[3][3];
     // TODO: cache the inversion.
-    script_homography::homography_inverse(instance->transform, inverse);
+    script_homography::homography_inverse(H, inverse);
     script_homography::homography_transform(input, inverse, transformed);
     dst->move(transformed[0], transformed[1]);
 }

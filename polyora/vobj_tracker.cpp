@@ -39,7 +39,7 @@ bool homography_is_plausible(float H[3][3]) {
     float l1 = half_trace + delta;
     float l2 = half_trace - delta;
     float ratio = l1 / l2;
-    return  (l1 < 3*l2 && l2 < 3*l1);
+    return  (l1 < 2.5*l2 && l2 < 2.5*l1);
 }
 }
 
@@ -56,7 +56,7 @@ vobj_tracker::vobj_tracker(int width, int height, int levels, int max_motion,
 	vdb(vdb)
 {
 	score_threshold=.00;
-	homography_corresp_threshold = 10;
+	homography_corresp_threshold = 12;
 	fmat_corresp_threshold = 20;
 	max_results=3;
 	use_incremental_learning=true;

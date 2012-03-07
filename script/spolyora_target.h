@@ -48,6 +48,43 @@ private:
 
 Q_DECLARE_METATYPE(SPolyoraTargetCollection *)
 
+class SPolyoraHomography : public QObject {
+    Q_OBJECT
+public:
+    SPolyoraHomography(QObject* parent) : QObject(parent) {
+	H[0][0] = 1; H[0][1] = 0; H[0][2] = 0;
+	H[1][0] = 0; H[1][1] = 1; H[1][2] = 0;
+	H[2][0] = 0; H[2][1] = 0; H[2][2] = 1;
+    }
+    SPolyoraHomography(const SPolyoraHomography& a, QObject* parent) : QObject(parent) {
+	copyFrom(a.H);
+    }
+    void copyFrom(const float h[3][3]) {
+	for (int i = 0; i < 3; ++i) {
+		for (int j = 0; j < 3; ++j) {
+			H[i][j] = h[i][j];
+		}
+	}
+    }	
+    void saveTo(float dst[3][3]) const {
+	for (int i = 0; i < 3; ++i) {
+		for (int j = 0; j < 3; ++j) {
+			dst[i][j] = H[i][j];
+		}
+	}
+    }
+
+public slots:
+    void pushTransform();
+    void popTransform();
+    bool transformPoint(const SPoint* src, SPoint* dst);
+    bool inverseTransformPoint(const SPoint* src, SPoint* dst);
+
+private:
+    float H[3][3];
+};
+Q_DECLARE_METATYPE(SPolyoraHomography *)
+
 class SPolyoraTarget : public QObject {
     Q_OBJECT
 
@@ -82,12 +119,24 @@ public:
     bool update();
 
 public slots:
-    void pushTransform();
-    void popTransform();
-    bool transformPoint(const SPoint* src, SPoint* dst);
-    bool inverseTransformPoint(const SPoint* src, SPoint* dst);
+    void pushTransform() { 
+	if (!lost) { last_good_homography->pushTransform(); }
+    }
+    void popTransform() {
+	if (!lost) { last_good_homography->popTransform(); }
+    }
+    bool transformPoint(const SPoint* src, SPoint* dst) {
+	if (!isDetected()) return false;
+	return last_good_homography->transformPoint(src, dst);
+    }
+    bool inverseTransformPoint(const SPoint* src, SPoint* dst) {
+	if (!isDetected()) return false;
+	return last_good_homography->inverseTransformPoint(src, dst);
+    }
+
     bool getSpeed(float x, float y, SPoint* dst);
 
+    SPolyoraHomography* homography() { return new SPolyoraHomography(last_good_homography, 0); }
 private:
     // units: seconds. If the object has never been seen, returns -1
     double timeSinceLastSeen() const;
@@ -104,7 +153,7 @@ private:
     QTime last_appeared;
     bool lost;
     double timeout;
-    float last_good_homography[3][3];
+    SPolyoraHomography* last_good_homography;
 };
 
 Q_DECLARE_METATYPE(SPolyoraTarget *)

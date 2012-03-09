@@ -65,7 +65,7 @@ IF(OpenCV_FOUND)
 ELSE(OpenCV_FOUND) 
 	MESSAGE(FATAL_ERROR "Looking for OpenCV - not found")
 ENDIF(OpenCV_FOUND)
-SET(OpenCV_LIBS ${OpenCV_LIBS} -ltiff -lz -ljpeg -lpng)
+SET(OpenCV_LIBS ${OpenCV_LIBS})
 SET(OpenCV_LIBRARIES ${OpenCV_LIBS})
 
 # SiftGPU depends on a lot of stuff

@@ -20,7 +20,7 @@
 #ifndef MSERDETECTOR_H
 #define MSERDETECTOR_H
 
-#include <cv.h>
+#include <opencv/cv.h>
 
 struct MSERegion
 {

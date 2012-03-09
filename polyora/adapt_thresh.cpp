@@ -1,6 +1,6 @@
 /*! \author Hideaki Uchiyama
  */
-#include <cv.h>
+#include <opencv/cv.h>
 
 #include <vector>
 using namespace std;

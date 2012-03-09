@@ -31,7 +31,7 @@
 //#include <GL/glew.h>
 #endif
 #include <QtOpenGL>
-#include <cv.h>
+#include <opencv/cv.h>
 
 #ifdef WITH_LIBVISION
 #include <image.h>

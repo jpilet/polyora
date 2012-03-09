@@ -36,8 +36,10 @@ IF (POLYORA_PROFILING)
 ENDIF(POLYORA_PROFILING)
 
 SET_TARGET_PROPERTIES(polyora PROPERTIES PUBLIC_HEADER 
-"polyora.h;tracks.h;vobj_tracker.h;visual_database.h;kpttracker.h;kmeantree.h;idcluster.h;vecmap.h;bucket2d.h;patchtagger.h;mlist.h;yape.h;keypoint.h;pyrimage.h;sqlite3.h;timer.h"
-		)
+"polyora.h;tracks.h;vobj_tracker.h;visual_database.h;kpttracker.h;kmeantree.h;idcluster.h;vecmap.h;bucket2d.h;patchtagger.h;mlist.h;yape.h;keypoint.h;pyrimage.h;sqlite3.h;timer.h")
+
+SET_TARGET_PROPERTIES(polyora PROPERTIES DEBUG_POSTFIX "_d")
+
 INSTALL(TARGETS polyora 
 		ARCHIVE DESTINATION "lib" 
 		PUBLIC_HEADER DESTINATION "include/polyora" 

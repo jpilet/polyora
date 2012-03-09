@@ -1,4 +1,6 @@
 # Ignore rules
 
 build/
-
+bin/
+#include/
+lib/

@@ -20,7 +20,7 @@
 #ifndef PIC_RANDOMIZER_H
 #define PIC_RANDOMIZER_H
 
-#include <cv.h>
+#include <opencv/cv.h>
 #include <vector>
 #include <stdio.h>
 #include <polyora/kpttracker.h>

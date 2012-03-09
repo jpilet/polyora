@@ -16,7 +16,7 @@
 #ifdef OPENCV_APPLE_FRAMEWORK
 #include <OpenCV/OpenCV.h>
 #else
-#include <cv.h>
+#include <opencv/cv.h>
 #include <highgui.h>
 #endif
 #include <vector>

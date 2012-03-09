@@ -22,7 +22,7 @@
 
 #include <stack>
 
-#include <cv.h>
+#include <opencv/cv.h>
 #include "yape.h"
 #include "tracks.h"
 #include "patchtagger.h"

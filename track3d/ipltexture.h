@@ -23,7 +23,7 @@
 #ifndef _IPLTEXTURE_H
 #define _IPLTEXTURE_H
 
-#include <cv.h>
+#include <opencv/cv.h>
 
 #define HAVE_GL
 

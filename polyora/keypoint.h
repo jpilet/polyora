@@ -22,7 +22,7 @@
 #define KEYPOINT_H
 
 #ifndef SKIP_OPENCV
-#include <cv.h>
+#include <opencv/cv.h>
 #endif
 
 /* Feature points detection

@@ -21,7 +21,7 @@
 #define VSVIEW_H
 
 #include <videosource.h>
-#include <cv.h>
+#include <opencv/cv.h>
 #include <qapplication.h>
 
 #include <QKeyEvent>

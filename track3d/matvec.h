@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <math.h>
-#include <cv.h>
+#include <opencv/cv.h>
 
 struct Mat4x4;
 struct Mat3x4;

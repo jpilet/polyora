@@ -38,7 +38,7 @@
 // the use of this software, even if advised of the possibility of such damage.
 //
 //M*/
-#include <cv.h>
+#include <opencv/cv.h>
 #include <cxmisc.h>
 #include <float.h>
 #include <stdio.h>

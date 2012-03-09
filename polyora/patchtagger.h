@@ -21,7 +21,7 @@
 #ifndef PATCHTAGGER_H
 #define PATCHTAGGER_H
 
-#include <cv.h>
+#include <opencv/cv.h>
 
 class patch_tagger {
 public:

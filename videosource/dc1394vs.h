@@ -3,7 +3,7 @@
 #ifndef __DC1394VS_H
 #define __DC1394VS_H
 
-#include <cv.h>
+#include <opencv/cv.h>
 #include "iniparser.h"
 #include "videosource.h"
 #include <dc1394/dc1394.h>

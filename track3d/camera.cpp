@@ -162,6 +162,21 @@ void PerspectiveProjection::resizeImage(int newW, int newH)
 	cmpEyeToImageMat();
 }
 
+bool PerspectiveProjection::loadOpenCVCalib(const char* filename) {
+	cv::FileStorage fs(filename, cv::FileStorage::READ);
+    if (!fs.isOpened()) return false;
+
+	cv::Mat K;
+	fs["camera_matrix"] >> K;
+    int width = fs["image_width"];
+    int height = fs["image_height"];
+    
+    set(width, height, 
+        K.at<double>(0,0), K.at<double>(1,1),
+        K.at<double>(0,2), K.at<double>(1,2));
+	return true;
+}
+
 
 /*! Inverse V axis (projected image upside/down)
  */

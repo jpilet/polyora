@@ -59,10 +59,10 @@ public:
     SPolyoraHomography(const SPolyoraHomography& a, QObject* parent) : QObject(parent) {
 	copyFrom(a.H);
     }
-    void copyFrom(const float h[3][3]) {
+    void copyFrom(const float src[3][3]) {
 	for (int i = 0; i < 3; ++i) {
 		for (int j = 0; j < 3; ++j) {
-			H[i][j] = h[i][j];
+			H[i][j] = src[i][j];
 		}
 	}
     }	
@@ -136,7 +136,7 @@ public slots:
 
     bool getSpeed(float x, float y, SPoint* dst);
 
-    SPolyoraHomography* homography() { return new SPolyoraHomography(last_good_homography, 0); }
+    SPolyoraHomography* homography() { return new SPolyoraHomography(*last_good_homography, 0); }
 private:
     // units: seconds. If the object has never been seen, returns -1
     double timeSinceLastSeen() const;

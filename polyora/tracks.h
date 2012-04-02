@@ -68,7 +68,7 @@ struct tkeypoint : point2d {
 	tkeypoint() { frame=0; track=0; }
 	tkeypoint(const tkeypoint &a) : point2d(a), frame(0), track(0) {}
 
-	/*! act as a constructor. Before calling set(), make sur the point is unlink()ed.
+	/*! act as a constructor. Before calling set(), make sure the point is unlink()ed.
 	 */
 	void set(tframe *f, float u, float v); 
 	const tkeypoint &operator = (const tkeypoint &a);

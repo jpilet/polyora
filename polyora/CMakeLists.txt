@@ -26,6 +26,7 @@ ADD_LIBRARY(polyora
 	adapt_thresh.cpp adapt_thresh.h
 	mserdetector.cpp mserdetector.h
 	homography4.h homography4.cpp fvec4.h
+	pca_descriptor.h pca_descriptor.cpp
 	polyora.h
 	# FAST is not included in the polyora distribution.
 	# fast.c fast.h fast_10.c fast_11.c fast_12.c fast_9.c nonmax.c

@@ -31,6 +31,7 @@
 #include "glbox.h"
 #include "ipltexture.h"
 #include <polyora/polyora.h>
+#include "camera.h"
 
 class track3d_view : public GLBox {
 Q_OBJECT
@@ -120,6 +121,8 @@ private:
 	void draw_instances(vobj_frame *frame);
 	GLuint get_texture_for_obj(visual_object *obj);
 
+	// Create a calibrated camera object.
+	PerspectiveCamera camera;
 };
 
 #endif

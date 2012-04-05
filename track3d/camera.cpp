@@ -105,13 +105,13 @@ void PerspectiveProjection::getGlProjection(double proj[4][4]) const
   double w = (double) width;
   double h = (double) height;
   
-  double near = this->nearPlane;
-  double far = this->farPlane;
+  double near_ = this->nearPlane;
+  double far_ = this->farPlane;
 
   proj[0][0] = 2*f/w;        proj[0][1] = 0;            proj[0][2] = 0;                      proj[0][3] =  0;
   proj[1][0] = 2*s/w;        proj[1][1] = 2*g/h;        proj[1][2] = 0;                      proj[1][3] =  0;
-  proj[2][0] = (-2*cx/w +1); proj[2][1] = (-2*cy/h +1); proj[2][2] = -(far+near)/(far-near); proj[2][3] = -1;
-  proj[3][0] = 0;            proj[3][1] = 0;            proj[3][2] = -2*far*near/(far-near); proj[3][3] =  0;
+  proj[2][0] = (-2*cx/w +1); proj[2][1] = (-2*cy/h +1); proj[2][2] = -(far_+near_)/(far_-near_); proj[2][3] = -1;
+  proj[3][0] = 0;            proj[3][1] = 0;            proj[3][2] = -2*far_*near_/(far_-near_); proj[3][3] =  0;
 }
 
 void PerspectiveProjection::getD3DProjection(double proj[4][4]) const
@@ -160,6 +160,21 @@ void PerspectiveProjection::resizeImage(int newW, int newH)
 	width = newW;
 	height = newH;
 	cmpEyeToImageMat();
+}
+
+bool PerspectiveProjection::loadOpenCVCalib(const char* filename) {
+	cv::FileStorage fs(filename, cv::FileStorage::READ);
+    if (!fs.isOpened()) return false;
+
+	cv::Mat K;
+	fs["camera_matrix"] >> K;
+    int width = fs["image_width"];
+    int height = fs["image_height"];
+    
+    set(width, height, 
+        K.at<double>(0,0), K.at<double>(1,1),
+        K.at<double>(0,2), K.at<double>(1,2));
+	return true;
 }
 
 

@@ -57,6 +57,8 @@ public:
 	void precalc();
 
 protected:
+	void cmp_orientation_histogram(CvMat *patch, patch_tagger::descriptor *d);
+	void cmp_orientation(CvMat *patch, patch_tagger::descriptor *d);
 
 	struct histo_entry {
 		unsigned weight1;

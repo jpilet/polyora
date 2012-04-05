@@ -20,7 +20,6 @@
 /* Julien Pilet, 2009. */
 #include <limits>
 #include "patchtagger.h"
-#include <highgui.h>
 #include <iostream>
 #include <math.h>
 #include "kmeantree.h"
@@ -198,12 +197,12 @@ void patch_tagger::precalc() {
 	}
 }
 
-void patch_tagger::cmp_descriptor(CvMat *patch, patch_tagger::descriptor *d, float sbpix_u, float sbpix_v)
-{
-	memset(d,0,sizeof(descriptor));
-
-	int h = patch->rows-1;
-	int w = patch->cols-1;
+void patch_tagger::cmp_orientation_histogram(CvMat *patch,
+					     patch_tagger::descriptor *d) {
+        assert(patch->rows == patch_size);
+        assert(patch->cols == patch_size);
+	const int h = patch_size - 1;
+	const int w = patch_size - 1;
 	for (int y=1; y<h; y++) {
 		unsigned char *line = &CV_MAT_ELEM(*patch, unsigned char, y, 0);
 		unsigned char *line_up = &CV_MAT_ELEM(*patch, unsigned char, y-1, 0);
@@ -227,6 +226,10 @@ void patch_tagger::cmp_descriptor(CvMat *patch, patch_tagger::descriptor *d, flo
                         d->histo[z2][polar.dir2] += w2 * polar.length2;
 		}
 	}
+}
+
+void patch_tagger::cmp_orientation(CvMat *patch, patch_tagger::descriptor *d) {
+	cmp_orientation_histogram(patch, d);
 
 	unsigned max_val=0; 
 	unsigned max_o=0;
@@ -273,13 +276,14 @@ void patch_tagger::cmp_descriptor(CvMat *patch, patch_tagger::descriptor *d, flo
 
 	d->orientation = (max_o+x)*M_2PI/nb_orient;
 	if (d->orientation<0) d->orientation+=M_2PI;
-	
+}	
 
-	/*
-	std::cout << "orient: " << d->orientation << ", x: " << x 
-		<< " y: " << y0 << "," << y1 << "," << y2
-		<< std::endl;
-		*/
+void patch_tagger::cmp_descriptor(CvMat *patch, patch_tagger::descriptor *d, float sbpix_u, float sbpix_v)
+{
+	memset(d,0,sizeof(descriptor));
+
+	cmp_orientation(patch, d);
+
 	//d->projection = project(d);
 	// fetch the rotated patch
         float scale = patch->cols / (float)patch_size ;
@@ -356,195 +360,4 @@ void patch_tagger::descriptor::array(float *array)
 	}
 	*/
 }
-
-/** Normalizes in norm L_2 a descriptor. */
-static void normalize_histogram(float* L_begin, float* L_end)
-{
-  float* L_iter ;
-  float norm = 0.0 ;
-
-  for(L_iter = L_begin; L_iter != L_end ; ++L_iter)
-    norm += (*L_iter) * (*L_iter) ;
-
-  norm = sqrtf(norm) ;
-
-  for(L_iter = L_begin; L_iter != L_end ; ++L_iter)
-    *L_iter /= (norm + std::numeric_limits<float>::epsilon() ) ;
-}
-
-
-
-/** @brief SIFT descriptor (inspired by siftpp)
- **
- ** The function computes the descriptor of the keypoint @a keypoint.
- ** The function fills the buffer @a descr_pt which must be large
- ** enough. The funciton uses @a angle0 as rotation of the keypoint.
- ** By calling the function multiple times, different orientations can
- ** be evaluated.
- **
- ** @remark The function needs to compute the gradient modululs and
- ** orientation of the Gaussian scale space octave to which the
- ** keypoint belongs. The result is cached, but discarded if different
- ** octaves are visited. Thereofre it is much quicker to evaluate the
- ** keypoints in their natural octave order.
- **
- ** The function silently abort the computations of keypoints without
- ** the scale space boundaries. See also siftComputeOrientations().
- **/
-void patch_tagger::compute_sift_descriptor(float* descr_pt, cv::Mat patch)
-{
-
-  /* The SIFT descriptor is a  three dimensional histogram of the position
-   * and orientation of the gradient.  There are NBP bins for each spatial
-   * dimesions and NBO  bins for the orientation dimesion,  for a total of
-   * NBP x NBP x NBO bins.
-   *
-   * The support  of each  spatial bin  has an extension  of SBP  = 3sigma
-   * pixels, where sigma is the scale  of the keypoint.  Thus all the bins
-   * together have a  support SBP x NBP pixels wide  . Since weighting and
-   * interpolation of  pixel is used, another  half bin is  needed at both
-   * ends of  the extension. Therefore, we  need a square window  of SBP x
-   * (NBP + 1) pixels. Finally, since the patch can be arbitrarly rotated,
-   * we need to consider  a window 2W += sqrt(2) x SBP  x (NBP + 1) pixels
-   * wide.
-   */      
-
-  // octave
-  int o = 0; //keypoint.o ;
-  float xperiod = 1; //getOctaveSamplingPeriod(o) ;
-
-  // offsets to move in Gaussian scale space octave
-  const int ow = patch.cols;
-  const int oh = patch.rows;
-  const int xo = 2 ; // siftpp uses a buffer with interlaced gradient norm and angle.
-
-  // keypoint fractional geometry
-  float x     = patch.cols/2.0f; //keypoint.x / xperiod;
-  float y     = patch.rows/2.0f; //keypoint.y / xperiod ;
-
-  float st0   = 0; //sinf( angle0 ) ;
-  float ct0   = 1; //cosf( angle0 ) ;
-  
-  // shall we use keypoints.ix,iy,is here?
-  int xi = ((int) (x+0.5)) ; 
-  int yi = ((int) (y+0.5)) ;
-  //int si = keypoint.is ;
-
-  const float magnif = 3.0f ;
-  const int NBO = 8 ;
-  const int NBP = 4 ;
-  const float sigma = 0.2357022604f*(patch.cols-3)/(NBP+1.0f); //keypoint.sigma / xperiod ;
-  const float SBP = magnif * sigma ;
-  const int   W = (int) floor (sqrt(2.0) * SBP * (NBP + 1) / 2.0 + 0.5) ;
-  
-  /* Offsets to move in the descriptor. */
-  /* Use Lowe's convention. */
-  const int binto = 1 ;
-  const int binyo = NBO * NBP ;
-  const int binxo = NBO ;
-  // const int bino  = NBO * NBP * NBP ;
-  
-  int bin ;
-  
-  std::fill( descr_pt, descr_pt + NBO*NBP*NBP, 0 ) ;
-
-  /* Center the scale space and the descriptor on the current keypoint. 
-   * Note that dpt is pointing to the bin of center (SBP/2,SBP/2,0).
-   */
-  //pixel_t const * pt = temp + xi*xo + yi*yo + (si - smin - 1)*so ; // gradient (?)
-  float *  dpt = descr_pt + (NBP/2) * binyo + (NBP/2) * binxo ;
-     
-#define atd(dbinx,dbiny,dbint) *(dpt + (dbint)*binto + (dbiny)*binyo + (dbinx)*binxo)
-      
-  /*
-   * Process pixels in the intersection of the image rectangle
-   * (1,1)-(M-1,N-1) and the keypoint bounding box.
-   */
-  for(int dyi = std::max(-W, 1-yi) ; dyi <= std::min(+W, oh-2-yi) ; ++dyi) {
-	  
-	  float *pix_line_up = patch.ptr<float>(yi+dyi-1);
-	  float *pix_line = patch.ptr<float>(yi+dyi);
-	  float *pix_line_down = patch.ptr<float>(yi+dyi+1);
-
-	  for(int dxi = std::max(-W, 1-xi) ; dxi <= std::min(+W, ow-2-xi) ; ++dxi) {
-
-		  float pix_dx = (pix_line[xi+dxi+1]-pix_line[xi+dxi-1])/2.0f;
-		  float pix_dy = (pix_line_up[xi+dxi]-pix_line_down[xi+dxi])/2.0f;
-
-		  // the following should go in a look-up table
-		  float angle = atan2f(pix_dy,pix_dx);
-		  if (angle<0) angle+= M_2PI;
-		  else if (angle>=1) angle-= M_2PI;
-		  float mod = sqrtf(pix_dx*pix_dx+pix_dy*pix_dy);
-		  float theta = M_2PI - angle; // lowe compatible ?
-
-		  // fractional displacement
-		  float dx = xi + dxi - x;
-		  float dy = yi + dyi - y;
-
-		  // get the displacement normalized w.r.t. the keypoint
-		  // orientation and extension.
-		  float nx = dx / SBP ;
-		  float ny = dy / SBP ; 
-		  float nt = NBO * theta / (2*M_PI) ;
-
-		  // Get the gaussian weight of the sample. The gaussian window
-		  // has a standard deviation equal to NBP/2. Note that dx and dy
-		  // are in the normalized frame, so that -NBP/2 <= dx <= NBP/2.
-		  float const wsigma = NBP/2.0f ;
-		  //float win = VL::fast_expn((nx*nx + ny*ny)/(2.0 * wsigma * wsigma)) ;
-		  float win = expf(-(nx*nx + ny*ny)/(2.0f * wsigma * wsigma)) ;
-
-		  // The sample will be distributed in 8 adjacent bins.
-		  // We start from the ``lower-left'' bin.
-		  int binx = (int)floorf( nx - 0.5f ) ;
-		  int biny = (int)floorf( ny - 0.5f ) ;
-		  int bint = (int)floorf( nt ) ;
-		  float rbinx = nx - (binx+0.5f) ;
-		  float rbiny = ny - (biny+0.5f) ;
-		  float rbint = nt - bint ;
-		  int dbinx ;
-		  int dbiny ;
-		  int dbint ;
-
-		  // Distribute the current sample into the 8 adjacent bins
-		  for(dbinx = 0 ; dbinx < 2 ; ++dbinx) {
-			  for(dbiny = 0 ; dbiny < 2 ; ++dbiny) {
-				  for(dbint = 0 ; dbint < 2 ; ++dbint) {
-
-					  if( binx+dbinx >= -(NBP/2) &&
-							  binx+dbinx <   (NBP/2) &&
-							  biny+dbiny >= -(NBP/2) &&
-							  biny+dbiny <   (NBP/2) ) {
-						  float weight = win 
-							  * mod 
-							  * fabsf (1 - dbinx - rbinx)
-							  * fabsf (1 - dbiny - rbiny)
-							  * fabsf (1 - dbint - rbint) ;
-
-						  atd(binx+dbinx, biny+dbiny, (bint+dbint) % NBO) += weight ;
-					  }
-				  }            
-			  }
-		  }
-	  }  
-  }
-
-  /* Standard SIFT descriptors are normalized, truncated and normalized again */
-  if( 1 /*normalizeDescriptor*/ ) {
-
-    /* Normalize the histogram to L2 unit length. */        
-    normalize_histogram(descr_pt, descr_pt + NBO*NBP*NBP) ;
-    
-    /* Truncate at 0.2. */
-    for(bin = 0; bin < NBO*NBP*NBP ; ++bin) {
-      if (descr_pt[bin] > 0.2) descr_pt[bin] = 0.2;
-    }
-    
-    /* Normalize again. */
-    normalize_histogram(descr_pt, descr_pt + NBO*NBP*NBP) ;
-  }
-
-}
-
 

@@ -55,6 +55,7 @@ patch_tagger::descriptor::descriptor()
 patch_tagger::descriptor::descriptor(const patch_tagger::descriptor &a) 
 {
 	*this = a;
+	cvInitMatHeader(&rotated,patch_size,patch_size, CV_32FC1, _rotated);
 }
 
 const patch_tagger::descriptor &patch_tagger::descriptor::operator=(const patch_tagger::descriptor &a)
@@ -62,6 +63,13 @@ const patch_tagger::descriptor &patch_tagger::descriptor::operator=(const patch_
 	memcpy(this, &a, sizeof(patch_tagger::descriptor));
 	cvInitMatHeader(&rotated, patch_size,patch_size, CV_32FC1, _rotated);
 	return *this;
+}
+
+void patch_tagger::descriptor::clear() { 
+    memset(histo, 0, sizeof(histo));
+    total = 0;
+    memset(sum_orient, 0, sizeof(sum_orient));
+    orientation = 0;
 }
 
 float patch_tagger::descriptor::correl(const patch_tagger::descriptor &a)
@@ -199,8 +207,8 @@ void patch_tagger::precalc() {
 
 void patch_tagger::cmp_orientation_histogram(CvMat *patch,
 					     patch_tagger::descriptor *d) {
-        assert(patch->rows == patch_size);
-        assert(patch->cols == patch_size);
+	d->clear();
+
 	const int h = patch_size - 1;
 	const int w = patch_size - 1;
 	for (int y=1; y<h; y++) {
@@ -264,7 +272,7 @@ void patch_tagger::cmp_orientation(CvMat *patch, patch_tagger::descriptor *d) {
 	   =>
 	      y0+y2 = 2*a + 2*y1
 	      a = (y0+y2)/2-y1
-	      b = (y0-y2)/-2 
+	      b = (y1-y2)/-2 
 	      c = y1
 
 	      y'= 0 = 2*a*x +b;
@@ -280,8 +288,6 @@ void patch_tagger::cmp_orientation(CvMat *patch, patch_tagger::descriptor *d) {
 
 void patch_tagger::cmp_descriptor(CvMat *patch, patch_tagger::descriptor *d, float sbpix_u, float sbpix_v)
 {
-	memset(d,0,sizeof(descriptor));
-
 	cmp_orientation(patch, d);
 
 	//d->projection = project(d);

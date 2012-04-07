@@ -12,6 +12,20 @@
 using std::max;
 using std::min;
 
+namespace {
+
+// Normalizes a patch for illumination.
+void IlluminationNormalize(const cv::Mat& warped, cv::Mat* dest) {
+    cv::Scalar mean, stddev;
+    //cv::Range range(warped.rows / 4, (warped.rows * 3) / 4);
+    cv::meanStdDev(warped, mean, stddev);
+
+    double normalize = (stddev[0] == 0 ? 1.0 / 255.0 : 1.0 / stddev[0]);
+    warped.convertTo(*dest, dest->type(), normalize, - mean[0] * normalize);
+}
+
+}  // namespace
+
 void ExtractPatch(const pyr_keypoint& point, cv::Size patch_size, cv::Mat* dest) {
     assert(dest != 0);
     assert(point.descriptor.orientation >= 0);
@@ -42,6 +56,10 @@ void ExtractPatch(const pyr_keypoint& point, cv::Size patch_size, cv::Mat* dest)
 	sa, ca, sa*tx + ca*ty + t2y,
     };
     cv::Mat transform(2, 3, CV_64FC1, transform_data);
-    cv::warpAffine(cv::Mat(im), *dest, transform, patch_size,
+    cv::Mat warped;
+    cv::warpAffine(cv::Mat(im), warped, transform, patch_size,
 	    cv::INTER_LINEAR + cv::WARP_INVERSE_MAP, cv::BORDER_REPLICATE);
+
+    // Normalize and convert to float
+    IlluminationNormalize(warped, dest);
 }

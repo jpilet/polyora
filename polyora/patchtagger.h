@@ -48,8 +48,10 @@ public:
 		descriptor(const descriptor &a);
 		const descriptor &operator=(const descriptor &a);
 		float correl(const descriptor &a);
+		void clear();
 	};
 
+	void cmp_orientation(CvMat *patch, patch_tagger::descriptor *d);
 	void cmp_descriptor(CvMat *patch, descriptor *d, float subpix_u, float subpix_v);
 	unsigned project(patch_tagger::descriptor *d);
 	
@@ -58,7 +60,6 @@ public:
 
 protected:
 	void cmp_orientation_histogram(CvMat *patch, patch_tagger::descriptor *d);
-	void cmp_orientation(CvMat *patch, patch_tagger::descriptor *d);
 
 	struct histo_entry {
 		unsigned weight1;

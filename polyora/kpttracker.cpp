@@ -34,6 +34,8 @@ using namespace std;
 #include <adapt_thresh.h>
 #endif
 
+#include "pca_descriptor.h"
+
 #ifdef WIN32
 static inline double drand48() {
 	return (double)rand()/(double)RAND_MAX;
@@ -690,23 +692,15 @@ void pyr_keypoint::prepare_patch(int win_size)
 	cid=0;
 
 #ifdef WITH_PATCH_TAGGER_DESCRIPTOR
-#ifdef WITH_MSER
-
-	cvInitMatHeader(&descriptor.rotated, patch_tagger::patch_size, patch_tagger::patch_size, CV_32FC1, descriptor._rotated);
-	cv::Mat _rot(&descriptor.rotated);
-	descriptor.orientation = atan2(mser.e1.y, mser.e1.x);
-	if (descriptor.orientation<0) descriptor.orientation+=6.283185307179586476925286766559f;
-
-	descriptor.total= (get_mser_patch(*f->pyr, _rot) ? 1:0);
-	descriptor.total= 1;
-
-#else
 	float subpix_x = level_u - floor(level_u);
         float subpix_y = level_v - floor(level_v);
 
-	// this computes the orientation
-	patch_tagger::singleton()->cmp_descriptor(&patch, &descriptor, subpix_x, subpix_y);
-#endif
+	patch_tagger::singleton()->cmp_orientation(&patch, &descriptor);
+	//patch_tagger::singleton()->cmp_descriptor(&patch, &descriptor, subpix_x, subpix_y);
+
+	cv::Size size(patch_tagger::patch_size, patch_tagger::patch_size);
+	cv::Mat rotated(size, CV_32FC1, descriptor._rotated);
+	ExtractPatch(*this, size, &rotated);
 
 	if (descriptor.total ==0) {
 		stdev=0;

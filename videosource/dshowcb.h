@@ -6,7 +6,7 @@
 #include <atlbase.h>
 #include <windows.h>
 #include <dshow.h>
-#include <qedit.h>
+//#include <qedit.h>
 
 #include "videosource.h"
 

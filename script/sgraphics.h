@@ -31,7 +31,7 @@ public slots:
     void drawQuad(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4);
     void setColor(double r, double g, double b, double a=1);
     void pushColor(double r, double g, double b, double a=1) { colorStack.push_front(Color(r,g,b,a)); setColor(r,g,b,a); }
-    void pushLineWidth(float width) { lineWidthStack.push(width); glLineWidth(width); }
+    void pushLineWidth(float width) { lineWidthStack.push_front(width); glLineWidth(width); }
     void popLineWidth() { lineWidthStack.pop_front(); glLineWidth(lineWidthStack.front()); }
     void popColor() { colorStack.pop_front(); setColor(colorStack.front());  }
     void pushMatrix() { glPushMatrix(); }

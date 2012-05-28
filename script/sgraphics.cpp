@@ -68,15 +68,15 @@ QScriptValue SGraphics::drawLineStrip(QScriptContext *context, QScriptEngine *en
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_LINE_SMOOTH);
 
-    glBegin();
+    glBegin(GL_LINE_STRIP);
     if (context->argumentCount() == 1) {
         // a single array with point objects
         QScriptValue point_array = context->argument(0);
         const int length = point_array.property("length").toInteger();
         for (int i = 0; i < length; ++i) {
             QScriptValue point = point_array.property(i);
-            glVertex2d(point.property("x").toNumber());
-            glVertex2d(point.property("y").toNumber());
+            glVertex2d(point.property("x").toNumber(),
+                       point.property("y").toNumber());
         }
     } else if (context->argumentCount() == 2) {
         // 2 arguments: 2 arrays of float
@@ -86,7 +86,7 @@ QScriptValue SGraphics::drawLineStrip(QScriptContext *context, QScriptEngine *en
         const int y_length = x_array.property("length").toInteger();
         if (x_length == y_length) {
             for (int i = 0; i < x_length; ++i) {
-                glVertex2d(x_array.property(i), y_array.property(i));
+                glVertex2d(x_array.property(i).toNumber(), y_array.property(i).toNumber());
             }
         } else {
             context->throwError("drawLineStrip: size mismatch for x and y arrays.");

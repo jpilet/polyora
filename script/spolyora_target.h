@@ -158,4 +158,4 @@ private:
 
 Q_DECLARE_METATYPE(SPolyoraTarget *)
 
-#endif SPOLYORA_OBJ_H
+#endif // SPOLYORA_OBJ_H

@@ -7,6 +7,7 @@ SGraphics::SGraphics(QGLWidget *context, QObject* parent)
 {
     currentTexture=0;
     pushColor(1,1,1,1);
+    pushLineWidth(1.0f);
 }
 
 void SGraphics::drawQuad(const SPoint *a, const SPoint *b, const SPoint *c, const SPoint *d)
@@ -48,6 +49,53 @@ QScriptValue SGraphics::homography(QScriptContext *context, QScriptEngine *engin
 
     glPushMatrix();
     setupHomography(H);
+    return engine->undefinedValue();
+}
+
+QScriptValue SGraphics::drawLineStrip(QScriptContext *context, QScriptEngine *engine) {
+    if (context->argumentCount() < 1) {
+        context->throwError("Not enough arguments");
+        return engine->undefinedValue();
+    }
+    SGraphics *_this = qobject_cast<SGraphics *>(context->thisObject().toQObject());
+    if (!_this) {
+        context->throwError("'this' is supposed to be the 'graphics' object");
+        return engine->undefinedValue();
+    }
+
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_LINE_SMOOTH);
+
+    glBegin();
+    if (context->argumentCount() == 1) {
+        // a single array with point objects
+        QScriptValue point_array = context->argument(0);
+        const int length = point_array.property("length").toInteger();
+        for (int i = 0; i < length; ++i) {
+            QScriptValue point = point_array.property(i);
+            glVertex2d(point.property("x").toNumber());
+            glVertex2d(point.property("y").toNumber());
+        }
+    } else if (context->argumentCount() == 2) {
+        // 2 arguments: 2 arrays of float
+        QScriptValue x_array = context->argument(0);
+        const int x_length = x_array.property("length").toInteger();
+        QScriptValue y_array = context->argument(1);
+        const int y_length = x_array.property("length").toInteger();
+        if (x_length == y_length) {
+            for (int i = 0; i < x_length; ++i) {
+                glVertex2d(x_array.property(i), y_array.property(i));
+            }
+        } else {
+            context->throwError("drawLineStrip: size mismatch for x and y arrays.");
+        }
+    } else {
+        context->throwError("drawLineStrip expects 1 array of points or 2 arrays of floats.");
+    }
+
+    glEnd();
     return engine->undefinedValue();
 }
 
@@ -185,5 +233,6 @@ void SGraphics::installInEngine(QScriptEngine *engine)
     v.setProperty("createTexture", engine->newFunction(createTexture,1));
     v.setProperty("homography", engine->newFunction(homography,1));
     v.setProperty("drawRectangle", engine->newFunction(drawRectangle,1));
+    v.setProperty("drawLineStrip", engine->newFunction(drawLineStrip,1));
     engine->globalObject().setProperty("graphics", v);
 }

@@ -458,11 +458,10 @@ void GLBox::wheelEvent( QWheelEvent *e )
 	e->accept();
 	
 	int delta = e->delta();
-	float s= delta / 110.0f;
+	float s = min(1.5f, max(0.5f, 1.0f + delta / 200.0f));
 
-	if (delta < 0)
-		s = 1/(-s);
-		
+	std::cout << "delta: " << delta << " s:" << s << " sx:" << sx << "\n";
+
 	sx *= s;
 	sy *= s;
 	setupTransform();

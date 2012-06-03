@@ -702,7 +702,15 @@ void VSView::draw_icon(point2d *c, const CvArr *image, float w, float h, float m
 	icon_texture_used.splice(icon_texture_used.begin(), icon_texture_available, icon_texture_available.begin());
 	IplTexture &t(icon_texture_used.front());
 	CvMat m;
-	t.setImage( cvGetMat(image, &m));
+	CvMat* original = cvGetMat(image, &m);
+	double min, max;
+	cvMinMaxLoc(original, &min, &max);
+	IplImage* converted = cvCreateImage(cvGetSize(original), IPL_DEPTH_8U, 1); 
+	cvCvtScale(original, converted,
+		255.0 / (max - min), 
+		- (255.0 / (max - min)) * min);
+
+	t.setImage(converted);
 	glColor4f(1,1,1,1);
 	t.drawQuad(c->u, c->v, w, h);
 	c->u +=  w + margin_x;
@@ -710,6 +718,7 @@ void VSView::draw_icon(point2d *c, const CvArr *image, float w, float h, float m
 		c->u = 0;
 		c->v += h + margin_y;
 	}
+	cvReleaseImage(&converted);
 }
 
 void VSView::draw_all_tracks(pyr_frame *frame)

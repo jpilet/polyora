@@ -9,13 +9,14 @@
 #define M_2PI 6.283185307179586476925286766559f
 #endif
 
+using cv::Mat;
 using std::max;
 using std::min;
 
 namespace {
 
 // Normalizes a patch for illumination.
-void IlluminationNormalize(const cv::Mat& warped, cv::Mat* dest) {
+void IlluminationNormalizeMeanStdDev(const Mat& warped, Mat* dest) {
     cv::Scalar mean, stddev;
     //cv::Range range(warped.rows / 4, (warped.rows * 3) / 4);
     cv::meanStdDev(warped, mean, stddev);
@@ -24,9 +25,23 @@ void IlluminationNormalize(const cv::Mat& warped, cv::Mat* dest) {
     warped.convertTo(*dest, dest->type(), normalize, - mean[0] * normalize);
 }
 
+void IlluminationNormalizeEqualizeHistogram(const Mat& warped, Mat* dest) {
+    Mat equalized;
+    cv::equalizeHist(warped, equalized);
+    equalized.convertTo(*dest, dest->type(), 1.0/255.0, 0);
+}
+
+void IlluminationNormalize(const Mat& warped, Mat* dest) {
+    if (1) {
+	IlluminationNormalizeEqualizeHistogram(warped, dest);
+    } else {
+	IlluminationNormalizeMeanStdDev(warped, dest);
+    }
+}
+
 }  // namespace
 
-void ExtractPatch(const pyr_keypoint& point, cv::Size patch_size, cv::Mat* dest) {
+void ExtractPatch(const pyr_keypoint& point, cv::Size patch_size, Mat* dest) {
     assert(dest != 0);
     assert(point.descriptor.orientation >= 0);
     assert(point.descriptor.orientation <= M_2PI);
@@ -55,9 +70,9 @@ void ExtractPatch(const pyr_keypoint& point, cv::Size patch_size, cv::Mat* dest)
 	ca, -sa, ca*tx - sa*ty + t2x,
 	sa, ca, sa*tx + ca*ty + t2y,
     };
-    cv::Mat transform(2, 3, CV_64FC1, transform_data);
-    cv::Mat warped;
-    cv::warpAffine(cv::Mat(im), warped, transform, patch_size,
+    Mat transform(2, 3, CV_64FC1, transform_data);
+    Mat warped;
+    cv::warpAffine(Mat(im), warped, transform, patch_size,
 	    cv::INTER_LINEAR + cv::WARP_INVERSE_MAP, cv::BORDER_REPLICATE);
 
     // Normalize and convert to float

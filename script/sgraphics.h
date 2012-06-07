@@ -31,6 +31,8 @@ public slots:
     void drawQuad(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4);
     void setColor(double r, double g, double b, double a=1);
     void pushColor(double r, double g, double b, double a=1) { colorStack.push_front(Color(r,g,b,a)); setColor(r,g,b,a); }
+    void pushLineWidth(float width) { lineWidthStack.push_front(width); glLineWidth(width); }
+    void popLineWidth() { lineWidthStack.pop_front(); glLineWidth(lineWidthStack.front()); }
     void popColor() { colorStack.pop_front(); setColor(colorStack.front());  }
     void pushMatrix() { glPushMatrix(); }
     void popMatrix() { glPopMatrix(); }
@@ -49,11 +51,13 @@ private:
         Color(double r, double g, double b, double a) : r(r), g(g), b(b), a(a) {}
     };
     std::list<Color> colorStack;
+    std::list<float> lineWidthStack;
     void setColor(const Color &c) { setColor(c.r, c.g, c.b, c.a); }
 
     static QScriptValue createTexture(QScriptContext *context, QScriptEngine *engine);
     static QScriptValue homography(QScriptContext *context, QScriptEngine *engine);
     static QScriptValue drawRectangle(QScriptContext *context, QScriptEngine *engine);
+    static QScriptValue drawLineStrip(QScriptContext *context, QScriptEngine *engine);
 };
 
 #endif // SGRAPHICS_H

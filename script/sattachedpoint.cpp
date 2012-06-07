@@ -78,7 +78,26 @@ void SAttachedPoint::installInEngine(QScriptEngine *engine)
 
     qScriptRegisterMetaType(engine, sAttachedPointToScriptValue, sAttachedPointFromScriptValue,
                             prototype);
+
+    engine->globalObject().setProperty("newAttachedPoint",
+        engine->newFunction(newAttachedPoint, 3));
 }
 bool SAttachedPoint::isValid() const {
     return model!=0 && model->isDetected();
+}
+
+QScriptValue SAttachedPoint::newAttachedPoint(QScriptContext *context, QScriptEngine *engine)
+{
+     SPolyoraTarget* target = 0;
+     float x=0,y=0;
+
+     if (context->argumentCount() >= 1) {
+       target = qobject_cast<SPolyoraTarget *>(context->argument(0).toQObject());
+     }
+     if (context->argumentCount() >= 3) {
+         x = float(context->argument(1).toNumber());
+         y = float(context->argument(2).toNumber());
+     }
+     return engine->newQObject(new SAttachedPoint(target, x, y),
+         QScriptEngine::ScriptOwnership);
 }

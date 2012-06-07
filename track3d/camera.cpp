@@ -100,7 +100,7 @@ void PerspectiveProjection::imageToEye(const double uv[2], double eye[3], double
 */
 void PerspectiveProjection::getGlProjection(double proj[4][4]) const 
 {
-  memset(proj,0,sizeof(proj));
+  memset(proj,0,sizeof(double) * 4 * 4);
 
   double w = (double) width;
   double h = (double) height;

@@ -208,12 +208,13 @@ void SPolyoraHomography::popTransform() {
 
 bool SPolyoraHomography::transformPoint(const SPoint* src, SPoint* dst) {
     if (!src || !dst) {
-	return false;
+      return false;
     }
     const float input[] = { src->getX(), src->getY() };
     float transformed[2];
     script_homography::homography_transform(input, H, transformed);
     dst->move(transformed[0], transformed[1]);
+    return true;
 }
 
 bool SPolyoraHomography::inverseTransformPoint(const SPoint* src, SPoint* dst) {

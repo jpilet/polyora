@@ -4,7 +4,6 @@
 
 /*
    TODO: 
-   - Scale
    - layers
 */
 
@@ -375,6 +374,26 @@ CColor.prototype.draw = function() {
 }
 
 //
+// Class LineWidth
+//
+function CLineWidth(width, c) {
+	this.width = width;
+	this.children = make_array(c);
+}
+this.LineWidth = apply_new(CLineWidth);
+CLineWidth.prototype = new CNode();
+CLineWidth.prototype.className = "LineWidth";
+CLineWidth.prototype.update = function(timebase) {
+	this._width = evalfi(this.width, timebase);
+	return update_all_children(this.children, timebase);
+}
+CLineWidth.prototype.draw = function() {
+	graphics.pushLineWidth(this._width);
+	CNode.prototype.draw.apply(this);
+	graphics.popLineWidth();
+}
+
+//
 // Class Quad
 //
 function CQuad() {
@@ -410,6 +429,35 @@ CQuad.prototype.update = function(timebase) {
 	} else {
 		throw "Quad requires 4 or 8 arguments representing 4 points";
 	}
+	return true; 
+}
+
+//
+// Class LineStrip
+//
+function CLineStrip(x_array, y_array) {
+	this.x_array = x_array;
+	this.y_array = y_array;
+	this._x_array = [];
+    if (y_array != undefined)
+        this._y_array = [];
+}
+this.LineStrip = apply_new(CLineStrip);
+
+CLineStrip.prototype = new CNode();
+CLineStrip.prototype.className = "LineStrip";
+CLineStrip.prototype.draw = function() {
+    if (this._y_array != undefined) {
+        graphics.drawLineStrip(this._x_array, this._y_array);
+    } else {
+        graphics.drawLineStrip(this._x_array);
+    }
+}
+CLineStrip.prototype.update = function(timebase) { 
+    this._x_array = evalfi(this.x_array, timebase);
+    if (this._y_array != undefined) {
+        this._y_array = evalfi(this.y_array, timebase);
+    }
 	return true; 
 }
 
@@ -585,6 +633,42 @@ CTranslate.prototype.draw = function() {
 }
 
 //
+// Scale Class
+//
+function CScale() {
+	if (arguments.length==0) return;
+	if (arguments.length != 3 && arguments.length !=2)
+		throw("Scale requires either 2 or 3 arguments.");
+	if (arguments.length == 2)
+		this.vector = arguments[0];
+	else
+		this.vector = [arguments[0], arguments[1] ];
+	this.children = make_array(arguments[arguments.length-1]);
+	this._x = 0;
+	this._y = 0;
+}
+this.Scale = apply_new(CScale);
+CScale.prototype = new CNode();
+CScale.prototype.className = "Scale";
+CScale.prototype.update = function(timebase) {
+	if (this.vector instanceof Array) {
+		this._x = evalfi(this.vector[0], timebase);
+		this._y = evalfi(this.vector[1], timebase);
+	} else {
+		var p = evalfi(this.vector, timebase);
+		this._x = p.x;
+		this._y = p.y;
+	}
+	return update_all_children(this.children, timebase);
+}
+CScale.prototype.draw = function() {
+	graphics.pushMatrix();
+	graphics.scale(this._x, this._y);
+	CNode.prototype.draw.apply(this);
+	graphics.popMatrix();
+}
+
+//
 // Rotate Class
 //
 function CRotate(angle, pivot, c) {
@@ -690,6 +774,28 @@ CPolyora.prototype.draw = function() {
 }
 
 //
+// PolyoraRelTime Class
+//
+function CPolyoraRelTime(target_id, children) {
+	if (arguments.length==0) return;
+	this.children = make_array(children);
+	this.target = polyora.getTarget(target_id);
+	if (this.target == undefined) {
+	    throw("Polyora object " + target_id + " not found.");
+	}
+}
+this.PolyoraRelTime = apply_new(CPolyoraRelTime);
+CPolyoraRelTime.prototype = new CPolyora();
+CPolyoraRelTime.prototype.className = "PolyoraRelTime";
+CPolyoraRelTime.prototype.update = function(timebase) {
+    if (this.target.lost) {
+	return false;
+    } else {
+	return update_all_children(this.children, this.target.sinceLastAppeared);
+    }
+}
+
+//
 // Particles Class
 //
 function CParticles(params, c) {
@@ -720,4 +826,42 @@ CParticles.prototype.draw = function() {
 		var p = this.particles[i];
 		p.draw();
 	}
+}
+
+
+//
+// State machine class.
+//
+this.StateMachine = function() {
+    this.states = { };
+    this.children = [];
+    this.current_state = "";
+    this.delay = 0;
+    this.current_time = 0;
+}
+StateMachine.prototype = new CNode();
+StateMachine.prototype.className = "StateMachine";
+StateMachine.prototype.addState = function(state_name, children, transition) {
+    this.states[state_name] = {
+	"children" : make_array(children),
+	"transition" : transition
+    };
+}
+
+StateMachine.prototype.setState = function(new_state) {
+    if (new_state == this.current_state)
+	return;
+
+    this.current_state = new_state;
+    this.children = this.states[new_state].children;
+    this.transition = this.states[new_state].transition;
+    this.delay = this.current_time;
+    this.children_active = update_all_children(this.children, 0); 
+}
+
+StateMachine.prototype.update = function(timebase) {
+    this.current_time = timebase;
+    this.children_active = update_all_children(this.children, timebase - this.delay); 
+    this.transition(timebase - this.delay, this, this.children_active);
+    return this.children_active;
 }

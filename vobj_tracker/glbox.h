@@ -41,6 +41,8 @@
 class GLBox : public QGLWidget
 {
     Q_OBJECT
+    Q_PROPERTY(bool axisUp READ getAxisUp WRITE setAxisUp);
+    Q_PROPERTY(bool axisLeft READ getAxisLeft WRITE setAxisLeft);
 
 public:
 
@@ -59,6 +61,9 @@ public:
     void translate(float dx, float dy) { this->dx=dx, this->dy=dy; setupTransform();}
     void zoom(float sx, float sy) { this->sx=sx; this->sy=sy; setupTransform(); }
     void setAxisUp(bool up) { yAxisUp = up; setupTransform(); }
+    bool getAxisUp() const { return yAxisUp; }
+    bool getAxisLeft() const { return xAxisLeft; }
+    void setAxisLeft(bool left) { xAxisLeft = left; setupTransform(); }
 
     void setImageSpace();
 
@@ -94,8 +99,12 @@ public:
     float sx,sy;
     void setupTransform();
     bool yAxisUp;
+    bool xAxisLeft;
 
     bool smooth;
+
+public slots:
+    void hideCursor();
 
 protected:
 

@@ -234,7 +234,8 @@ bool visual_database::connect_to_db(sqlite3 *sql3db)
 			"orient real,"
 			"patch blob"
 		");\n"
-		"CREATE INDEX IF NOT EXISTS keypoints_obj_idx on Keypoints (obj_id);", 
+		"CREATE INDEX IF NOT EXISTS keypoints_obj_idx on Keypoints (obj_id);\n"
+		"PRAGMA synchronous=OFF;\n", 
 		0, 0, &errmsg);
 	if (rc != SQLITE_OK) {
 		cerr << "Error while creating tables: " << errmsg << endl;

@@ -49,20 +49,6 @@ float patch_tagger::_weight[patch_tagger::patch_size][patch_tagger::patch_size];
 patch_tagger::descriptor::descriptor()
 {
 	total=0;
-	cvInitMatHeader(&rotated, patch_size,patch_size, CV_32FC1, _rotated);
-}
-
-patch_tagger::descriptor::descriptor(const patch_tagger::descriptor &a) 
-{
-	*this = a;
-	cvInitMatHeader(&rotated,patch_size,patch_size, CV_32FC1, _rotated);
-}
-
-const patch_tagger::descriptor &patch_tagger::descriptor::operator=(const patch_tagger::descriptor &a)
-{
-	memcpy(this, &a, sizeof(patch_tagger::descriptor));
-	cvInitMatHeader(&rotated, patch_size,patch_size, CV_32FC1, _rotated);
-	return *this;
 }
 
 void patch_tagger::descriptor::clear() { 
@@ -300,17 +286,18 @@ void patch_tagger::cmp_descriptor(CvMat *patch, patch_tagger::descriptor *d, flo
                 ca, -sa, sbpix_u + patch->cols/2,
                 sa, ca, sbpix_v + patch->rows/2};
 	CvMat rotm;
-	cvInitMatHeader(&d->rotated,patch_size,patch_size, CV_32FC1, d->_rotated);
+        CvMat rotated;
+	cvInitMatHeader(&rotated,patch_size,patch_size, CV_32FC1, d->_rotated);
 	cvInitMatHeader(&rotm,2,3,CV_32FC1,mat);
-	cvGetQuadrangleSubPix(patch, &d->rotated, &rotm);
+	cvGetQuadrangleSubPix(patch, &rotated, &rotm);
 	CvScalar mean, stdev;
-	cvAvgSdv(&d->rotated, &mean, &stdev, &mask);
+	cvAvgSdv(&rotated, &mean, &stdev, &mask);
 	if (fabs(stdev.val[0]) < 0.0001) {
 		//cvSaveImage("buggy_patch.bmp", &d->rotated);
 		//std::cout << "stdev=0 in patch!! saving buggy_patch.bmp\n";
 		stdev.val[0]=1;
 		d->total=0;
-		cvSetZero(&d->rotated);
+		cvSetZero(&rotated);
 	} else {
 		// f = (ai-mu)*(wi/s) + .5 =
 		float s = .5/stdev.val[0];

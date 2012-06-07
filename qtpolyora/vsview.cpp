@@ -684,7 +684,10 @@ void VSView::draw_selected_track()
 			point2d pos_down(pos.u, pos.v+r);
 			draw_icon(&pos_down, &mat, r, r, image->width, 0, r);
 		}
-		draw_icon(&pos, &k->descriptor.rotated, r, r, image->width, 0, r);
+                CvMat rotated;
+                cvInitMatHeader(&rotated, patch_tagger::patch_size, patch_tagger::patch_size, CV_32FC1,
+                        k->descriptor._rotated);
+		draw_icon(&pos, &rotated, r, r, image->width, 0, r);
 #endif
 	}
 	glPopMatrix();
@@ -837,12 +840,13 @@ void VSView::draw_matches(pyr_frame *frame)
 
 			if (k==selected_kpt && i->node) {
 				point2d down(cursor.u, cursor.v+16);
-				CvMat mat; 
+				CvMat mat, rotated; 
 				cvInitMatHeader(&mat, patch_tagger::patch_size, patch_tagger::patch_size, CV_32FC1,
 						i->node->mean.mean);
 				draw_icon(&down, &mat, 16, 16, entry_image->width,0,16);
 
-				draw_icon(&cursor, &i->descriptor.rotated, 16, 16, entry_image->width,0,16);
+				cvInitMatHeader(&rotated, patch_tagger::patch_size, patch_tagger::patch_size, CV_32FC1, const_cast<float *>(&i->descriptor._rotated[0][0]));
+				draw_icon(&cursor, &rotated, 16, 16, entry_image->width,0,16);
 			}
 		}
 		glPopMatrix();
@@ -875,7 +879,9 @@ void VSView::draw_matches(pyr_frame *frame)
 				draw_icon(&down, &mat, 16, 16, entry_image->width,0,16);
 			}
 
-			draw_icon(&cursor, &o->descriptor.rotated, 16, 16, entry_image->width,0,16);
+                        CvMat rotated;
+			cvInitMatHeader(&rotated, patch_tagger::patch_size, patch_tagger::patch_size, CV_32FC1, const_cast<float *>(&o->descriptor._rotated[0][0]));
+			draw_icon(&cursor, &rotated, 16, 16, entry_image->width,0,16);
 		}
 		glPopMatrix();
 	}

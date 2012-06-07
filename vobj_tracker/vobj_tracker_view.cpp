@@ -556,7 +556,10 @@ void vobj_tracker_view::draw_selected_track()
 			point2d pos_down(pos.u, pos.v+r);
 			draw_icon(&pos_down, &mat, r, r, image->width, 0, r);
 		}
-		draw_icon(&pos, &k->descriptor.rotated, r, r, image->width, 0, r);
+                CvMat rotated;
+                cvInitMatHeader(&rotated, patch_tagger::patch_size, patch_tagger::patch_size, CV_32FC1,
+                        k->descriptor._rotated);
+		draw_icon(&pos, &rotated, r, r, image->width, 0, r);
 #endif
 	}
 	glPopMatrix();

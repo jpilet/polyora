@@ -40,13 +40,11 @@ public:
 		float orientation;
 		unsigned projection;
 		float _rotated[patch_size][patch_size];
-		CvMat rotated;
+                cv::Mat rotated() { return cv::Mat(patch_size, patch_size, CV_32FC1, _rotated); }
 
 		void array(float *array);
 
 		descriptor();
-		descriptor(const descriptor &a);
-		const descriptor &operator=(const descriptor &a);
 		float correl(const descriptor &a);
 		void clear();
 	};

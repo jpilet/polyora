@@ -53,7 +53,7 @@ void ExtractPatch(const pyr_keypoint& point, cv::Size patch_size, Mat* dest) {
     /*
        To convert patch coordinates to image coordinates,
        the following operations are applied:
-       1) Translate(-patch_width / 2, - path_height /2);
+       1) Translate(-patch_width / 2, - patch_height /2);
        2) Rotate(orientation)
        3) Scale(pow(2, scale) - 1 << floor(scale)) (ignored for now)
        4) Translate(level.u, level.v)

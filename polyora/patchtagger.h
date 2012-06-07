@@ -50,7 +50,6 @@ public:
 	};
 
 	void cmp_orientation(CvMat *patch, patch_tagger::descriptor *d);
-	void cmp_descriptor(CvMat *patch, descriptor *d, float subpix_u, float subpix_v);
 	unsigned project(patch_tagger::descriptor *d);
 	
 
@@ -90,6 +89,9 @@ protected:
 	unsigned char _mask[patch_size][patch_size];
 	CvMat mask;
 	static void compute_sift_descriptor(float* descr_pt, cv::Mat patch);
+
+        // Used only when WITH_PCA_DESCRIPTOR is defined.
+        cv::Mat pca_modes;
 };
 
 #endif

@@ -44,7 +44,8 @@
 #if defined(WITH_YAPE) || defined(WITH_GOOD_FEATURES_TO_TRACK) \
 	|| defined(WITH_FAST) || defined(WITH_ADAPT_THRESH) || defined(WITH_MSER)
 #define WITH_PATCH_TAGGER_DESCRIPTOR
-#define WITH_PATCH_AS_DESCRIPTOR
+//#define WITH_PATCH_AS_DESCRIPTOR
+#define WITH_PCA_DESCRIPTOR
 #endif
 
 

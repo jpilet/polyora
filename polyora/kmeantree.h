@@ -33,6 +33,9 @@ namespace kmean_tree {
 #ifdef WITH_PATCH_AS_DESCRIPTOR
         static const unsigned descriptor_size=256; // use image patch as descriptor
 #endif
+#ifdef WITH_PCA_DESCRIPTOR
+        static const unsigned descriptor_size=32; // number of PCA modes to use.
+#endif
 #endif
 
 	struct descriptor_t {

@@ -580,7 +580,6 @@ void pyr_keypoint::prepare_patch(int win_size)
         float subpix_y = level_v - floor(level_v);
 
 	patch_tagger::singleton()->cmp_orientation(&patch, &descriptor);
-	//patch_tagger::singleton()->cmp_descriptor(&patch, &descriptor, subpix_x, subpix_y);
 
 	cv::Size size(patch_tagger::patch_size, patch_tagger::patch_size);
 	cv::Mat rotated(size, CV_32FC1, descriptor._rotated);

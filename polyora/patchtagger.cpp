@@ -23,6 +23,7 @@
 #include <iostream>
 #include <math.h>
 #include "kmeantree.h"
+#include "pca_descriptor.h"
 
 #ifndef M_2PI
 #define M_2PI 6.283185307179586476925286766559f
@@ -189,6 +190,10 @@ void patch_tagger::precalc() {
 		} while (random_tests[i].zone1==random_tests[i].zone2 &&
 			random_tests[i].orient2==random_tests[i].orient1);
 	}
+
+#ifdef WITH_PCA_DESCRIPTOR
+        pca_modes = LoadPcaVectors(kmean_tree::descriptor_size);
+#endif
 }
 
 void patch_tagger::cmp_orientation_histogram(CvMat *patch,
@@ -272,47 +277,6 @@ void patch_tagger::cmp_orientation(CvMat *patch, patch_tagger::descriptor *d) {
 	if (d->orientation<0) d->orientation+=M_2PI;
 }	
 
-void patch_tagger::cmp_descriptor(CvMat *patch, patch_tagger::descriptor *d, float sbpix_u, float sbpix_v)
-{
-	cmp_orientation(patch, d);
-
-	//d->projection = project(d);
-	// fetch the rotated patch
-        float scale = patch->cols / (float)patch_size ;
-        float ca = cos(d->orientation) * scale;
-        float sa = sin(d->orientation) * scale;
-
-	float mat[] = {
-                ca, -sa, sbpix_u + patch->cols/2,
-                sa, ca, sbpix_v + patch->rows/2};
-	CvMat rotm;
-        CvMat rotated;
-	cvInitMatHeader(&rotated,patch_size,patch_size, CV_32FC1, d->_rotated);
-	cvInitMatHeader(&rotm,2,3,CV_32FC1,mat);
-	cvGetQuadrangleSubPix(patch, &rotated, &rotm);
-	CvScalar mean, stdev;
-	cvAvgSdv(&rotated, &mean, &stdev, &mask);
-	if (fabs(stdev.val[0]) < 0.0001) {
-		//cvSaveImage("buggy_patch.bmp", &d->rotated);
-		//std::cout << "stdev=0 in patch!! saving buggy_patch.bmp\n";
-		stdev.val[0]=1;
-		d->total=0;
-		cvSetZero(&rotated);
-	} else {
-		// f = (ai-mu)*(wi/s) + .5 =
-		float s = .5/stdev.val[0];
-		for (unsigned y=0;y<patch_size; y++)
-			for (unsigned x=0;x<patch_size; x++)
-				d->_rotated[y][x] = (d->_rotated[y][x]-mean.val[0])*_weight[y][x]*s +.5;
-	}
-	//cvAddS(&d->rotated,&d->rotated, cvScalarAll(-mean.val[0]));
-	//cvMul(&d->rotated, &weight, &d->rotated, .5/stdev.val[0]);
-	//cvAddS(&d->rotated,&d->rotated, cvScalarAll(.5));
-	//cvScale(&d->rotated, &d->rotated, .5/stdev.val[0], .5-.5*mean.val[0]/stdev.val[0]);
-	//cvMul(&d->rotated, &weight,&d->rotated,
-
-}
-
 unsigned patch_tagger::project(patch_tagger::descriptor *d) 
 {
 	unsigned r=0;
@@ -337,9 +301,13 @@ void patch_tagger::descriptor::array(float *array)
 	assert(patch_size*patch_size == kmean_tree::descriptor_size);
 	memcpy(array, _rotated, patch_size*patch_size*sizeof(float));
 #else
-	assert(kmean_tree::descriptor_size == 128);
-	cv::Mat _rot(&rotated);
-	compute_sift_descriptor(array, _rot);
+#ifdef WITH_PCA_DESCRIPTOR
+        cv::Mat vector(patch_size * patch_size, 1, CV_32FC1, _rotated);
+        cv::Mat projected(kmean_tree::descriptor_size, 1, CV_32FC1, array); 
+        PcaProject(patch_tagger::singleton()->pca_modes, vector, &projected);
+#else
+#error please either define WITH_PATCH_AS_DESCRIPTOR or WITH_PCA_DESCRIPTOR.
+#endif
 #endif
 	/*
 	float *p = array;

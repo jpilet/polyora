@@ -78,3 +78,27 @@ void ExtractPatch(const pyr_keypoint& point, cv::Size patch_size, Mat* dest) {
     // Normalize and convert to float
     IlluminationNormalize(warped, dest);
 }
+
+
+cv::Mat LoadPcaVectors(int num_vectors) {
+    int size = patch_tagger::patch_size * patch_tagger::patch_size;
+    assert(num_vectors > 0 && num_vectors < size);
+    cv::Mat data(size, size, CV_32FC1);
+    FILE *f = fopen("pca_modes", "r");
+    if (!f) {
+        perror("pca_modes");
+        exit(-1);
+    }
+    for (int i = 0; i < data.rows * data.cols; ++i) {
+        if (fscanf(f, "%f", data.ptr<float>() + i) != 1) {
+            fprintf(stderr, "pca_modes: can't read entry %d\n", i);
+        }
+    }
+    fclose(f);
+    return data(cv::Range::all(), cv::Range(0, num_vectors));
+}
+
+void PcaProject(const cv::Mat& pca_modes, const cv::Mat& vector, cv::Mat* dest) {
+    *dest = pca_modes * vector;
+}
+

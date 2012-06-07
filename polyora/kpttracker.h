@@ -33,15 +33,12 @@
 */
 /*@{*/
 
-// To activate SiftGPU, uncomment the following and undef WITH_YAPE
-//#define WITH_SIFTGPU
 #define WITH_YAPE
 
 // These detectors are roughly implemented and do not work well.
 //#define WITH_FAST
 //#define WITH_GOOD_FEATURES_TO_TRACK
 //#define WITH_ADAPT_THRESH
-//#define WITH_SURF
 //#define WITH_MSER
 
 #if defined(WITH_YAPE) || defined(WITH_GOOD_FEATURES_TO_TRACK) \
@@ -52,20 +49,6 @@
 
 
 #include "kmeantree.h"
-
-#ifdef WITH_SIFTGPU
-#ifdef WIN32
-#include <GL/glew.h>
-#include <windows.h>
-#endif
-#include <SiftGPU.h>
-#ifdef MACOS
-#include <OpenGL/gl.h>
-#else
-
-#include <GL/gl.h>
-#endif
-#endif
 
 #ifdef WITH_MSER
 #include "mserdetector.h"
@@ -101,12 +84,6 @@ struct pyr_keypoint : tkeypoint {
 	unsigned cid;
 	float cscore;
 
-#ifdef WITH_SURF
-	kmean_tree::descriptor_t surf_descriptor;
-#endif
-#ifdef WITH_SIFTGPU
-	kmean_tree::descriptor_t sift_descriptor;
-#endif
 #ifdef WITH_MSER
 	MSERegion mser;
 	bool get_mser_patch(PyrImage &pyr, cv::Mat mat);
@@ -201,10 +178,6 @@ public:
 	keypoint *points;
 #endif
 
-#ifdef WITH_SIFTGPU
-	SiftGPU sift;
-#endif
-
 #ifdef WITH_MSER
 	MSERDetector mser;
 #endif
@@ -231,22 +204,9 @@ private:
 		recycler_t(pyr_keypoint::pyr_keypoint_factory_t *f) : factory(f) {}
 
 		pyr_keypoint *get_new() { 
-//#ifdef _OPENMP
-#if 1
 			return (pyr_keypoint *)factory->create();
-#else
-			pyr_keypoint *r=0;
-			if (!available.empty()) { pyr_keypoint *o = available.top(); available.pop(); r= o; }
-			else r= (pyr_keypoint *)factory->create() ;
-			return r;
-#endif
 		}
-//#ifdef _OPENMP
-#if 1
 		void recycle(pyr_keypoint *obj) { delete (obj); }
-#else
-		void recycle(pyr_keypoint *obj) { available.push(obj); }
-#endif
 		void clear() {
 			while (!available.empty()) { delete available.top(); available.pop(); }
 		}

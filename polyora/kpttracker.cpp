@@ -117,26 +117,6 @@ kpt_tracker::kpt_tracker(int width, int height, int levels, int max_motion, bool
 	detector->set_radius(5);
 	points = new keypoint[10000];
 #endif
-#ifdef WITH_SIFTGPU
-	//char * argv[] ={ "-s", "-v", "0",  "-pack",  "-t", "0.03", "-e", "5", "-s", "3"};
-	char * argv[] ={ "-s", "-v", "0", "-fo", "0",  "-pack" };
-	sift.ParseParam(sizeof(argv)/sizeof(char *), argv);
-	//sift.SetVerbose(5);
-	int support;
-	if (glContext)
-		support = sift.VerifyContextGL();
-	else 
-		support = sift.CreateContextGL();
-	if(support != SiftGPU::SIFTGPU_FULL_SUPPORTED) {
-		cerr << "no suitable hardware/driver for SiftGPU !\n";
-		exit(-1);
-	}
-	//sift.AllocatePyramid(width,height);
-	assert(sizeof(kmean_tree::descriptor_t)  == 128*sizeof(float));
-#endif
-#ifdef WITH_ADAPT_THRESH
-	adapt_thresh_mat = cvCreateMat(2000,2,CV_32F);
-#endif
 }
 
 bool kpt_tracker::load_tree(sqlite3 *db)
@@ -206,9 +186,6 @@ void kpt_tracker::set_size(int width, int height, int levels, int )
 #ifdef WITH_YAPE
 	delete detector;
 	detector = new pyr_yape(width,height,levels);
-#endif
-#ifdef WITH_SIFTGPU
-	sift.AllocatePyramid(width,height);
 #endif
 }
 
@@ -375,33 +352,6 @@ void kpt_tracker::detect_keypoints(pyr_frame *f) {
 	}
 #endif
 
-#ifdef WITH_SURF
-	CvSeq *surf_pts=0;
-	CvSeq *surf_descr=0;
-	CvMemStorage* storage = cvCreateMemStorage(0);
-	CvSURFParams params = cvSURFParams(500, 1);
-	cvExtractSURF(f->pyr->images[0], 0, &surf_pts, &surf_descr, storage, params);
-	int tot = surf_pts->total;
-	CvSeqReader reader, descr;
-	cvStartReadSeq(surf_pts, &reader);
-	cvStartReadSeq(surf_descr, &descr);
-	for (int i=0; i<tot; i++) {
-		CvSURFPoint *s = (CvSURFPoint *) reader.ptr;
-		const float *d = (const float *) descr.ptr;
-		CV_NEXT_SEQ_ELEM(reader.seq->elem_size, reader);
-		CV_NEXT_SEQ_ELEM(descr.seq->elem_size, descr);
-		pyr_keypoint *p = kpt_recycler.get_new();
-		p->set(f, s->pt.x, s->pt.y, 0, patch_size);
-		p->descriptor.orientation = (360-s->dir) * M_PI / 180.0f;
-		memcpy(p->surf_descriptor.descriptor, d, sizeof(p->surf_descriptor));
-		p->id = 0;
-		p->cid=0;
-
-		
-	}
-	cvReleaseMemStorage( &storage );
-#endif
-
 #ifdef WITH_GOOD_FEATURES_TO_TRACK
 
 	PyrImage eig(cvCreateImage(cvGetSize(f->pyr->images[0]), IPL_DEPTH_32F, 1),  f->pyr->nbLev);
@@ -426,31 +376,6 @@ void kpt_tracker::detect_keypoints(pyr_frame *f) {
 	}
 #endif
 
-#ifdef WITH_SIFTGPU
-	TaskTimer::pushTask("SiftGPU");
-	IplImage *im = f->pyr->images[0];
-	sift.RunSIFT(im->width, im->height, im->imageData, GL_LUMINANCE, GL_UNSIGNED_BYTE);
-	int num = sift.GetFeatureNum();
-	//get feature count
-	//allocate memory for readback
-	vector<float> descriptors(128*num);
-	vector<SiftGPU::SiftKeypoint> keys(num);
-	//read back keypoints and normalized descritpros
-	//specify NULL if you don’t need keypionts or descriptors
-	if (num) {
-		sift.GetFeatureVector(&keys[0], &descriptors[0]);
-		TaskTimer::popTask();
-		TaskTimer::pushTask("descriptor & tree");
-		for (int i=0; i<num; i++) {
-			pyr_keypoint *p = kpt_recycler.get_new();
-			p->set(f, keys[i].x/2, keys[i].y/2, 1, patch_size);
-			memcpy(&(p->sift_descriptor), &descriptors[i*128], sizeof(float)*128);
-			p->descriptor.orientation = keys[i].o;
-			p->id = 0;
-		}
-	}
-	TaskTimer::popTask();
-#endif
 }
 
 void kpt_tracker::track_ncclk(pyr_frame *f, pyr_frame *lf)
@@ -540,12 +465,6 @@ void kpt_tracker::track_ncclk(pyr_frame *f, pyr_frame *lf)
 			prev_ft, curr_ft, nft, cvSize(patch_size,patch_size), f->pyr->nbLev, lk_status,
                         0, cvTermCriteria(CV_TERMCRIT_ITER|CV_TERMCRIT_EPS,3,0.1), CV_LKFLOW_INITIAL_GUESSES);
 	int nsaved=0;
-#ifdef WITH_SIFTGPU
-	vector<pyr_keypoint *> need_descriptors;
-	vector<SiftGPU::SiftKeypoint> keys;
-	need_descriptors.reserve(2000);
-	keys.reserve(2000);
-#endif
 
 	for (int i=0; i<nft; i++) {
 		if (!lk_status[i]) continue;
@@ -561,51 +480,16 @@ void kpt_tracker::track_ncclk(pyr_frame *f, pyr_frame *lf)
 			float s = 1.0f/(1<<(int)prev_kpt[i]->scale);
 			newkpt->set(f,curr_ft[i].x*s, curr_ft[i].y*s, prev_kpt[i]->scale, patch_size);
 			newkpt->score = prev_kpt[i]->score;
-#ifdef WITH_SURF
-			newkpt->id = prev_kpt[i]->id;
-			newkpt->cid = prev_kpt[i]->cid;
-			newkpt->descriptor.orientation = prev_kpt[i]->descriptor.orientation;
-			newkpt->surf_descriptor.descriptor[0]=-1;
-#endif
                         if (cmp_ncc(prev_kpt[i], newkpt)> ncc_threshold) {
 				set_match(prev_kpt[i],newkpt);
                                 static_cast<pyr_track *>(newkpt->track)->nb_lk_tracked++;
                                 nsaved++;
-
-#ifdef WITH_SIFTGPU
-	// unfortunately, calling SIFTGPU from a secondary thread is not possible.
-	// therefore, pipelining with sift can't be done. We'll skip this descriptor,
-	// unless the following is defined.
-#ifdef COMPUTE_ADDITIONAL_SIFT_DESCRIPTORS
-				SiftGPU::SiftKeypoint skp;
-				skp.x = newkpt->u;
-				skp.y = newkpt->v;
-				skp.s = newkpt->scale;
-				skp.o = 0;
-				keys.push_back(skp);
-				need_descriptors.push_back(newkpt);
-#else
-				memcpy(&newkpt->sift_descriptor, &prev_kpt[i]->sift_descriptor, 128*sizeof(float));
-#endif
-#endif
 			} else {
 				newkpt->dispose();
 			}
 		}
 	}
 
-#if defined(WITH_SIFTGPU) && defined(COMPUTE_ADDITIONAL_SIFT_DESCRIPTORS)
-	
-	TaskTimer::pushTask("SiftGPU");
-	vector<float> descriptors(128*keys.size());
-	sift.RunSIFT(keys.size(), &keys[0]);
-	sift.GetFeatureVector(NULL, &descriptors[0]);
-	for (unsigned i=0; i<keys.size(); i++)
-	{
-		memcpy(&(need_descriptors[i]->sift_descriptor), &descriptors[128*i], 128*sizeof(float));
-	}
-	TaskTimer::popTask();
-#endif
 	//if (f->points.size()>0)
 	//cout << ncc_calls << " calls to cmp_ncc, for " << f->points.size() << " points in frame. Avg: " 
 	//	<< ncc_calls / f->points.size() ;
@@ -722,12 +606,6 @@ void kpt_tracker::traverse_tree(pyr_frame *frame)
 		k->descriptor.array(array.descriptor);
 		k->id = tree->get_id(&array, &k->node);
 #endif
-#ifdef WITH_SIFTGPU
-		k->id = tree->get_id(&k->sift_descriptor, &k->node);
-#endif
-#ifdef WITH_SURF
-		k->id = tree->get_id(&k->surf_descriptor, &k->node);
-#endif
 	}
 	TaskTimer::popTask();
 }
@@ -751,12 +629,6 @@ pyr_keypoint::pyr_keypoint(tframe *f, float u, float v, int scale, int patch_siz
 pyr_keypoint::pyr_keypoint(const pyr_keypoint &a)
 	: tkeypoint(a), scale(a.scale), level(a.level), mean(a.mean),
 	stdev(a.stdev), id(a.id), cid(a.cid),
-#ifdef WITH_SURF
-	surf_descriptor(a.surf_descriptor),
-#endif
-#ifdef WITH_SIFTGPU
-	sift_descriptor(a.sift_descriptor),
-#endif
 	descriptor(a.descriptor),
 	node(a.node)
 {
@@ -780,12 +652,6 @@ const pyr_keypoint &pyr_keypoint::operator = (const pyr_keypoint &a)
 	stdev=a.stdev;
 	id=a.id;
 	cid=a.cid;
-#ifdef WITH_SURF
-	surf_descriptor=a.surf_descriptor;
-#endif
-#ifdef WITH_SIFTGPU
-	sift_descriptor=a.sift_descriptor;
-#endif
 	descriptor=a.descriptor;
 	node=a.node;
 	assert(data==0 || a.data==0 || a.patch.rows == patch.rows);

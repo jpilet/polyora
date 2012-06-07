@@ -29,18 +29,10 @@
 namespace kmean_tree {
 
 	static const unsigned nb_branches = 4;
-#ifdef WITH_SURF
-	static const unsigned descriptor_size=64; // for SURF
-#endif
 #ifdef WITH_PATCH_TAGGER_DESCRIPTOR
 #ifdef WITH_PATCH_AS_DESCRIPTOR
         static const unsigned descriptor_size=256; // use image patch as descriptor
-#else
-        static const unsigned descriptor_size=128; // use SIFT descriptor
 #endif
-#endif
-#ifdef WITH_SIFTGPU
-	static const unsigned descriptor_size=128; // for SIFT
 #endif
 
 	struct descriptor_t {

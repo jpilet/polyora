@@ -25,6 +25,7 @@ public:
     SPoint *getSrc() { return &src; }
 
     static void installInEngine(QScriptEngine *engine);
+    static QScriptValue newAttachedPoint(QScriptContext *context, QScriptEngine *engine);
 
 public slots:
     void attachFromImage(float newx, float newy);

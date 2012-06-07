@@ -29,7 +29,6 @@
 
 #include <iostream>
 #include <math.h>
-#include <highgui.h>
 
 using namespace std;
 
@@ -39,6 +38,7 @@ using namespace std;
 #endif
 #include "glbox.h"
 #include <stdlib.h>
+#include <highgui.h>
 
 #if defined(Q_CC_MSVC)
 #pragma warning(disable:4305) // init: truncation from const double to float

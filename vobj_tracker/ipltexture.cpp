@@ -21,7 +21,7 @@
  * Julien Pilet, 2005-2008
  */
 #include <iostream>
-#include <GL/glew.h>
+#include <QtOpenGL>
 #include "ipltexture.h"
 
 IplTexture::IplTexture(const IplTexture &a)

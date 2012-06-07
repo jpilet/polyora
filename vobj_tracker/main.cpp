@@ -86,6 +86,8 @@ int main(int argc, char **argv) {
 				glbox->record_movie = true;
 		} else if (strcmp(argv[i],"-l")==0) {
 			glbox->learning = false;
+    } else if (strcmp(argv[i], "-f") == 0) {
+      glbox->showFullScreen();
 		} else {
 			cout << "Unknown command line parameter: " << argv[i] << endl;
 			cout << "Available options are:\n"
@@ -97,7 +99,8 @@ int main(int argc, char **argv) {
 				" -s <script>\n"
 				" -l : disable incremental learning\n"
 				" -B : binary tf-idf\n"
-				" -M : min tf-idf\n";
+				" -M : min tf-idf\n"
+        " -f : fullscreen\n";
 		}
 	}
 

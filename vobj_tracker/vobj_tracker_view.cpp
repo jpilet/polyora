@@ -449,7 +449,9 @@ void vobj_tracker_view::createTracker()
 			}
 		}
 		script_engine.setup(this, &database, 0, texture);
-		script_engine.runScript("polyora.js");
+		if (!script_engine.runScript("polyora.js")) {
+      draw_flags = DRAW_COLOR | DRAW_INSTANCE;
+    }
 
 		cout << "Ready. Press F1 for help.\n";
 		time_since_started.start();

@@ -29,6 +29,7 @@ public:
 
   PerspectiveProjection(int w, int h, double f, double g, double cx, double, double s=0);
   void set(int w, int h, double f, double g, double cx , double cy, double s=0);
+  bool loadOpenCVCalib(const char* filename);
 
   void eyeToImage(const double eye[3], double uv[2]) const;
   void imageToEye(const double uv[2], double eye[3], double w=0) const;

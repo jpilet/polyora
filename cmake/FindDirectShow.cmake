@@ -9,6 +9,13 @@
 IF(WIN32)
   # Find DirectX Include Directory
   FIND_PATH(DIRECTX_INCLUDE_DIR ddraw.h
+    "C:/Program Files/Microsoft SDKs/Windows/v7.1/Include"
+    # VS 7.1 PlatformSDK: includes ddraw and dshow
+    "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\VisualStudio\\7.1\\Setup\\VC;ProductDir]/PlatformSDK/Include"
+    # WindowsSDK: includes ddraw and dshow
+    "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Microsoft SDKs\\Windows;CurrentInstallFolder]/Include"
+    # Newer DirectX: dshow not included; requires Platform SDK
+    "$ENV{DXSDK_DIR}/Include"
     "C:/Program Files/Microsoft Visual Studio .NET 2003/Vc7/PlatformSDK/Include"
     "C:/Program Files/Microsoft DirectX SDK (February 2006)/Include"
     "C:/Program Files/Microsoft DirectX 9.0 SDK (June 2005)/Include"
@@ -19,6 +26,8 @@ IF(WIN32)
   # if DirectX found, then find DirectShow include directory
   IF(DIRECTX_INCLUDE_DIR)
     FIND_PATH(DIRECTSHOW_INCLUDE_DIR dshow.h
+      "${DIRECTX_INCLUDE_DIR}"
+      "C:/Program Files/Microsoft SDKs/Windows/v7.1/Include"
       "C:/Program Files/Microsoft Visual Studio .NET 2003/Vc7/PlatformSDK/Include"
       "C:/Program Files/Microsoft Platform SDK/Include"
       "C:/DXSDK/Include"
@@ -28,12 +37,16 @@ IF(WIN32)
     # if DirectShow include dir found, then find DirectShow libraries
     IF(DIRECTSHOW_INCLUDE_DIR)
       FIND_LIBRARY(DIRECTSHOW_strmiids_LIBRARY strmiids
+        "${DIRECTSHOW_INCLUDE_DIR}/../Lib"
+        "C:/Program Files/Microsoft SDKs/Windows/v7.1/Lib"
         "C:/Program Files/Microsoft Visual Studio .NET 2003/Vc7/PlatformSDK/Lib"
         "C:/Program Files/Microsoft Platform SDK/Lib"
         "C:/DXSDK/Include/Lib"
         DOC "Where can the DirectShow strmiids library be found"
       )
       FIND_LIBRARY(DIRECTSHOW_quartz_LIBRARY quartz
+        "${DIRECTSHOW_INCLUDE_DIR}/../Lib"
+        "C:/Program Files/Microsoft SDKs/Windows/v7.1/Lib"
         "C:/Program Files/Microsoft Visual Studio .NET 2003/Vc7/PlatformSDK/Lib"
         "C:/Program Files/Microsoft Platform SDK/Lib"
         "C:/DXSDK/Include/Lib"
@@ -50,9 +63,7 @@ IF(WIN32)
     ENDIF(DIRECTSHOW_INCLUDE_DIR)
   ENDIF(DIRECTX_INCLUDE_DIR)
 
-  SET(DIRECTSHOW_LIBRARIES
-    ${DIRECTSHOW_strmiids_LIBRARY}
-    ${DIRECTSHOW_quartz_LIBRARY}
+  SET(DIRECTSHOW_LIBRARIES "${DIRECTSHOW_strmiids_LIBRARY} ${DIRECTSHOW_quartz_LIBRARY}"
     CACHE STRING "DirectShow Libraries"
   )
 

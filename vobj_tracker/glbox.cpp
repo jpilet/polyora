@@ -29,9 +29,9 @@
 
 #include <iostream>
 #include <math.h>
-#include <highgui.h>
 
 #include <GL/glew.h>
+#include <QtOpenGL>
 
 using namespace std;
 
@@ -41,6 +41,7 @@ using namespace std;
 #endif
 #include "glbox.h"
 #include <stdlib.h>
+#include <highgui.h>
 
 #if defined(Q_CC_MSVC)
 #pragma warning(disable:4305) // init: truncation from const double to float
@@ -72,6 +73,7 @@ void GLBox::init()
 	reloadImage = true;
 	allowCache = false;
 	yAxisUp = false;
+	xAxisLeft = false;
 	smooth=false;
 	setupTransform();
 }
@@ -115,11 +117,18 @@ void GLBox::paintGL()
 	}
 
 	float imUp = 0;
+	float imLeft = 0;
 
 	if (yAxisUp) {
 		imUp = h;
 		h = 0;
 	}
+  /*
+  if (xAxisLeft) {
+    imLeft = w;
+    w = 0;
+  }
+  */
 
 	setImageSpace();
 
@@ -141,11 +150,11 @@ void GLBox::paintGL()
 
 	//              glTexCoord2f(1,1);
 	glTexCoord2f(0,vUp);
-	glVertex2f(0,imUp);
+	glVertex2f(imLeft,imUp);
 
 	//              glTexCoord2f(1,0);
 	glTexCoord2f(0,v);
-	glVertex2f(0,h);
+	glVertex2f(imLeft,h);
 
 	glEnd();
 
@@ -247,26 +256,31 @@ void GLBox::imageToScreenCoord(float x, float y, int *scrx, int *scry) const
 
 void GLBox::setupTransform() {
 
-	float h,f;
+	float h, f;
+  float w, g;
        
 	if (image) {
 		h = (float)image->height;
-		f = yAxisUp ? -1 : 1;
+		f = yAxisUp ? -1.0f : 1.0f;
+    w = (float)image->width;
+    g = xAxisLeft ? -1.0f : 1.0f;
 	} else {
 		h = 0;
 		f = 1;
+    w = 0;
+    g = 1;
 	}
 
-	affineTransf[0][0] = sx;
+	affineTransf[0][0] = sx * g;
 	affineTransf[1][0] = 0;
 	//affineTransf[2][0] = 0;
 
 	affineTransf[0][1] = 0;
-	affineTransf[1][1] = sy*f;
+	affineTransf[1][1] = sy * f;
 	//affineTransf[2][1] = 0;
 
-	affineTransf[0][2] = dx*affineTransf[0][0];
-	affineTransf[1][2] = dy*affineTransf[1][1] + (sy*(1-f)*h)/2;
+	affineTransf[0][2] = dx * affineTransf[0][0] + (sx*(1.0f-g)*w)/2.0f;
+	affineTransf[1][2] = dy * affineTransf[1][1] + (sy*(1.0f-f)*h)/2.0f;
 	//affineTransf[2][2] = 1;
 
 	invertAffine();
@@ -479,3 +493,6 @@ void GLBox::invertAffine() {
 	invAffineTransf[1][2] = -(affineTransf[0][0]*affineTransf[1][2]-affineTransf[0][2]*affineTransf[1][0])*t4;
 }
 
+void GLBox::hideCursor() {
+  setCursor(QCursor(Qt::BlankCursor));
+}

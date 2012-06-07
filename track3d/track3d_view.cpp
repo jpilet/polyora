@@ -323,6 +323,17 @@ void track3d_view::createTracker()
 			}
 		}
 		cout << "Ready.\n";
+
+		// These constants come from opencv's calibration file.
+		camera.set(640, 480, // image_width, image_height
+			// the following are the fields of camera_matrix:
+			// data[0], data[4], data[2], data[5]
+			6.3802737002212859e+02, 6.2878307248533815e+02,
+			3.2879300246053975e+02, 2.2232560297939980e+02);
+		if (!camera.loadOpenCVCalib("out_camera_data.yml")) {
+			cout << "Failed to load out_camera_data.yml. Using default values.\n";
+		}
+		camera.flip();
 	}
 }
 
@@ -365,16 +376,6 @@ GLuint track3d_view::get_texture_for_obj(visual_object *obj)
 
 void track3d_view::augment3d(visual_object *obj, float H[3][3]) {
 
-	// Create a calibrated camera object.
-	PerspectiveCamera camera;
-	// These constants come from opencv's calibration file.
-	camera.set(640, 480, // image_width, image_height
-
-		// the following are the fields of camera_matrix:
-		// data[0], data[4], data[2], data[5]
-		6.3802737002212859e+02, 6.2878307248533815e+02,
-		3.2879300246053975e+02, 2.2232560297939980e+02);
-
 	// If the video mode has changed, the camera should be re-calibrated.
 	// Otherwise, it is possible to set a new resolution:
 	// camera.resizeImage( width, height );
@@ -387,19 +388,20 @@ void track3d_view::augment3d(visual_object *obj, float H[3][3]) {
 	    }
 	}
 
-	camera.setPoseFromHomography(Hd);
-	camera.flip();
+	PerspectiveCamera cam(camera);
+	cam.setPoseFromHomography(Hd);
+	cam.flip();
 
 	// cout << camera << endl;
 
 	double matrix[4][4];
 	glMatrixMode(GL_PROJECTION);
-	camera.getGlProjection(matrix);
+	cam.getGlProjection(matrix);
 	glPushMatrix();
 	glLoadMatrixd(&matrix[0][0]);
 
 	glMatrixMode(GL_MODELVIEW);
-	camera.getGlModelView(matrix);
+	cam.getGlModelView(matrix);
 	glPushMatrix();
 	glLoadMatrixd(&matrix[0][0]);
 
@@ -409,7 +411,7 @@ void track3d_view::augment3d(visual_object *obj, float H[3][3]) {
 	glVertex3f(0,0,0);
 	glVertex3f(0,480,0);
 	glVertex3f(0,0,0);
-	glVertex3f(0,0,-500);
+	glVertex3f(0,0,500);
 	glEnd();
 
 	glMatrixMode(GL_PROJECTION);

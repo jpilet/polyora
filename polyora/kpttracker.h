@@ -257,7 +257,7 @@ private:
 	};
 
 	recycler_t kpt_recycler;
-	friend class pyr_keypoint;
+	friend struct pyr_keypoint;
 
 protected:
 	pyr_frame *pipeline_stage1;

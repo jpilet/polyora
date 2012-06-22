@@ -17,7 +17,9 @@
     To contact the author of this program, please send an e-mail to:
     julien.pilet(at)calodox.org
 */
+
 #include "visual_database.h"
+#include <opencv2\calib3d\calib3d.hpp>
 #include <algorithm>
 #include <iostream>
 
@@ -269,10 +271,10 @@ bool visual_database::connect_to_db(sqlite3 *sql3db)
 		while (sqlite3_step(kpt_stmt) == SQLITE_ROW) {
 			db_keypoint kpt( sqlite3_column_int(kpt_stmt, 0), // cid
 					sqlite3_column_int64(kpt_stmt, 1)); // img_id
-			kpt.u = sqlite3_column_double(kpt_stmt, 2);
-			kpt.v = sqlite3_column_double(kpt_stmt, 3);
-			kpt.scale = sqlite3_column_double(kpt_stmt, 4);
-			kpt.descriptor.orientation = sqlite3_column_double(kpt_stmt, 5);
+			kpt.u = float(sqlite3_column_double(kpt_stmt, 2));
+			kpt.v = float(sqlite3_column_double(kpt_stmt, 3));
+			kpt.scale = int(sqlite3_column_double(kpt_stmt, 4));
+			kpt.descriptor.orientation = float(sqlite3_column_double(kpt_stmt, 5));
 
 			const unsigned length = sizeof(kpt.descriptor._rotated);
 			assert((unsigned)sqlite3_column_bytes(kpt_stmt, 6) == length);
@@ -289,8 +291,8 @@ bool visual_database::connect_to_db(sqlite3 *sql3db)
 			while (sqlite3_step(kpt_stmt) == SQLITE_ROW) {
 				vo->annotations.push_back(visual_object::annotation(
 							sqlite3_column_int64(kpt_stmt, 0), // id
-							sqlite3_column_double(kpt_stmt, 1), // x
-							sqlite3_column_double(kpt_stmt, 2), // y
+							float(sqlite3_column_double(kpt_stmt, 1)), // x
+							float(sqlite3_column_double(kpt_stmt, 2)), // y
 							(const char *)sqlite3_column_text(kpt_stmt, 4), // descr
 							 sqlite3_column_int(kpt_stmt, 3))); // type
 			}
@@ -585,7 +587,7 @@ float visual_object::get_correspondences_std(pyr_frame *frame, correspondence_ve
 		npts++;
 
 		bool added=false;
-		track->id_histo.sort_results_min_ratio(.7);
+		track->id_histo.sort_results_min_ratio(.7f);
 		for(incremental_query::iterator it(track->id_histo.begin()); it!=track->id_histo.end(); ++it)
 		{
 			int cid = it->c->id;
@@ -613,7 +615,7 @@ float visual_object::get_correspondences_std(pyr_frame *frame, correspondence_ve
 	}
 	//return 2.0f*score/(float)(min((int)points.size(),npts));
 	//return matched_cids.size()/(float)ncids;
-	return score/max_score;
+	return float (score/max_score);
 }
 
 float visual_object::verify(pyr_frame *, correspondence_vector &corresp)

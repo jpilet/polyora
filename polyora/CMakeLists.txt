@@ -28,6 +28,8 @@ ADD_LIBRARY(polyora
 	# fast.c fast.h fast_10.c fast_11.c fast_12.c fast_9.c nonmax.c
 	)
 
+TARGET_LINK_LIBRARIES(polyora ${OpenCV_LIBS})
+
 IF (POLYORA_PROFILING)
 	ADD_DEFINITIONS(-DENABLE_PROFILE)
 ENDIF(POLYORA_PROFILING)

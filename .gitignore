@@ -1,6 +1,7 @@
 # Ignore rules
 
 build/
+build_mingw
 bin/
-#include/
 lib/
+install/

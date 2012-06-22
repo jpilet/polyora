@@ -100,7 +100,7 @@ void patch_tagger::precalc() {
 			if (angle<0) angle+=1;
 			if (angle>=1) angle-=1;
 			unsigned l = (unsigned)floor(256*sqrt((double)(a*a+b*b)));
-			float obinf = nb_orient * angle +.5;
+			float obinf = nb_orient * angle +.5f;
 			unsigned o1 = (unsigned)floor(obinf);
 			float r = obinf - o1;
 			unsigned o2;
@@ -139,7 +139,7 @@ void patch_tagger::precalc() {
 			float dy = y-c;
 			
 			float dc2 = 4*(dx*dx+dy*dy)/(patch_size*patch_size);
-			float wdc = exp(-dc2*dc2*1.8);
+			float wdc = exp(-dc2*dc2*1.8f);
 			_weight[y][x] = wdc;
 			tot_weight += wdc;
 			_mask[y][x] = (wdc>.8 ? 0xff:0);
@@ -151,10 +151,10 @@ void patch_tagger::precalc() {
 			unsigned z = floor(angle);
 			assert(z<nb_zone);
 			float dz;
-			if (angle-z > .5) 
-				dz = (angle-z-0.5)/(0.5 );
+			if (angle-z > .5f) 
+				dz = (angle-z-0.5f)/(0.5f );
 			else
-				dz = (z+0.5-angle)/(0.5 );
+				dz = (z+0.5f-angle)/(0.5f );
 
 
 			weight_table[y][x].zone1 = z;

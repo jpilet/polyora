@@ -22,7 +22,7 @@
 #define KEYPOINT_H
 
 #ifndef SKIP_OPENCV
-#include <opencv/cv.h>
+#include <opencv2/core/core_c.h>
 #endif
 
 /* Feature points detection
@@ -36,7 +36,7 @@ class keypoint
 {
  public:
    keypoint(void) { u=-1; v=-1; scale=0; id=-1; }
-   keypoint(float u, float v, float scale) { this->u = u; this->v = v; this->scale = scale; id=-1; }
+   keypoint(float u, float v, int scale) { this->u = u; this->v = v; this->scale = scale; id=-1; }
    keypoint(const keypoint & p) { u = p.u; v = p.v; scale = p.scale; score = p.score; id=p.id; }
    virtual ~keypoint() {}
 

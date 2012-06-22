@@ -40,7 +40,7 @@ Street, Fifth Floor, Boston, MA 02110-1301, USA
 #ifndef PYRIMAGE_H
 #define PYRIMAGE_H
 
-#include <opencv/cv.h>
+#include <opencv2/imgproc/imgproc_c.h>
 
 #ifdef WIN32                      // disable warning :
 #pragma warning( disable : 4127 ) // (/W4) conditional expression is constant

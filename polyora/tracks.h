@@ -35,7 +35,7 @@
 
 struct tframe;
 struct ttrack;
-struct tracks;
+class tracks;
 
 /*! Basic 2-D point, in float.*/
 struct point2d {

@@ -587,7 +587,7 @@ float visual_object::get_correspondences_std(pyr_frame *frame, correspondence_ve
 		npts++;
 
 		bool added=false;
-		track->id_histo.sort_results_min_ratio(.7);
+		track->id_histo.sort_results_min_ratio(.7f);
 		for(incremental_query::iterator it(track->id_histo.begin()); it!=track->id_histo.end(); ++it)
 		{
 			int cid = it->c->id;

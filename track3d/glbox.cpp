@@ -40,6 +40,10 @@ using namespace std;
 #include <stdlib.h>
 #include <highgui.h>
 
+#ifndef GL_BGR_EXT
+#define GL_BGR_EXT 0x80E0
+#endif
+
 #if defined(Q_CC_MSVC)
 #pragma warning(disable:4305) // init: truncation from const double to float
 #endif

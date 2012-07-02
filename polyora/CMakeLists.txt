@@ -27,6 +27,7 @@ ADD_LIBRARY(polyora
 	mserdetector.cpp mserdetector.h
 	homography4.h homography4.cpp fvec4.h
 	polyora.h
+	include_windows.h
 	# FAST is not included in the polyora distribution.
 	# fast.c fast.h fast_10.c fast_11.c fast_12.c fast_9.c nonmax.c
 	)

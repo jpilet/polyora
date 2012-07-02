@@ -25,12 +25,13 @@
 #include <string.h>
 
 #ifdef WIN32
-#include <windows.h>
+#include "include_windows.h"
 typedef LARGE_INTEGER time_type;
 #else
 #include <sys/time.h>
 typedef struct timeval time_type;
 #endif
+
 
 time_type get_time();
 double time_to_msec(time_type &t);

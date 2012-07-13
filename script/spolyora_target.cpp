@@ -228,6 +228,7 @@ bool SPolyoraHomography::inverseTransformPoint(const SPoint* src, SPoint* dst) {
     script_homography::homography_inverse(H, inverse);
     script_homography::homography_transform(input, inverse, transformed);
     dst->move(transformed[0], transformed[1]);
+	return true;
 }
 
 bool SPolyoraTarget::getSpeed(float x, float y, SPoint* dst) {

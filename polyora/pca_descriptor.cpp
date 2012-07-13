@@ -1,5 +1,7 @@
 #include "pca_descriptor.h"
 
+#include <opencv2/imgproc/imgproc.hpp>
+
 #include "kpttracker.h"
 #include <assert.h>
 #include <math.h>
@@ -80,25 +82,51 @@ void ExtractPatch(const pyr_keypoint& point, cv::Size patch_size, Mat* dest) {
 }
 
 
-cv::Mat LoadPcaVectors(int num_vectors) {
-    int size = patch_tagger::patch_size * patch_tagger::patch_size;
-    assert(num_vectors > 0 && num_vectors < size);
-    cv::Mat data(size, size, CV_32FC1);
-    FILE *f = fopen("pca_modes", "r");
-    if (!f) {
-        perror("pca_modes");
-        exit(-1);
-    }
-    for (int i = 0; i < data.rows * data.cols; ++i) {
-        if (fscanf(f, "%f", data.ptr<float>() + i) != 1) {
-            fprintf(stderr, "pca_modes: can't read entry %d\n", i);
+namespace {
+
+cv::Mat loadMat(const char* filename) {
+    cv::Mat result;
+
+    FILE *f = fopen(filename, "r");
+    if (f) {
+        float value;
+        std::vector<float> values;
+        while (fscanf(f, "%f", &value) == 1) {
+            values.push_back(value);
         }
+        fclose(f);
+		result = cv::Mat(1, values.size(), CV_32FC1, &values[0]).clone();
     }
-    fclose(f);
-    return data(cv::Range::all(), cv::Range(0, num_vectors));
+    return result;
 }
 
-void PcaProject(const cv::Mat& pca_modes, const cv::Mat& vector, cv::Mat* dest) {
-    *dest = pca_modes * vector;
+}  // namespace
+
+bool PatchPCA::load(int num_vectors) {
+    num_vectors_ = num_vectors;
+
+    cv::Mat data = loadMat("pca_modes");
+    int size = patch_tagger::patch_size * patch_tagger::patch_size;
+    if (data.empty() || data.cols != size * size) {
+        return false;
+    }
+	pca_modes_ = (data.reshape(1, size))(cv::Range::all(), cv::Range(0, num_vectors)).t();
+
+	pca_average_ = loadMat("pca_avg");
+	if (pca_average_.cols != size) {
+		return false;
+	}
+    pca_average_ = pca_average_.reshape(1, size);
+    
+    return !pca_average_.empty();
 }
+
+void PatchPCA::project(const cv::Mat& vector, cv::Mat* dest) const {
+    *dest = pca_modes_ * (vector - pca_average_);
+}
+
+void PatchPCA::unproject(const cv::Mat& compressed, cv::Mat* dst) const {
+	*dst = cv::Mat(compressed.t() * pca_modes_ + pca_average_.t()).reshape(1, 16);
+}
+
 

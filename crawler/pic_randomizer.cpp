@@ -179,7 +179,6 @@ void Corners::random_homography(float src_width, float src_height, float min_ang
 	}
 
 	// rotation
-	float rot[4][2];
 	for (int i=0; i<4; i++) {
 		float a = cos(angle)*p[i][0] - sin(angle)*p[i][1];
 		float b = sin(angle)*p[i][0] + cos(angle)*p[i][1];

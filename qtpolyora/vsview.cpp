@@ -1053,7 +1053,7 @@ void VSView::write_descriptor(pyr_keypoint *k, long ptr)
 	float _array[descr_size];
 	k->descriptor.array(_array);
 	for (int i = 0; i < descr_size; ++i) {
-		assert(_finite(_array[i]));
+		assert(finite(_array[i]));
 	}
 
 	n = fwrite(_array, descr_size * sizeof(float), 1,descrf);

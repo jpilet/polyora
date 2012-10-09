@@ -1,7 +1,12 @@
 # Ignore rules
 
+.DS_Store
+*.user
 build/
 build_mingw
 bin/
 lib/
 install/
+Polyora-*
+polyora_state_machine*
+tags

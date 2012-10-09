@@ -273,8 +273,11 @@ void patch_tagger::cmp_orientation(CvMat *patch, patch_tagger::descriptor *d) {
 	float b = (y0-y2)/-2.0f;
 	float x = -b/(2*a);
 
-	d->orientation = (max_o+x)*M_2PI/nb_orient;
-	if (d->orientation<0) d->orientation+=M_2PI;
+	d->orientation = (max_o + x) * (M_2PI / nb_orient);
+	if (d->orientation<0) {
+        d->orientation += M_2PI;
+    }
+    assert(d->orientation >= 0);
 }	
 
 unsigned patch_tagger::project(patch_tagger::descriptor *d) 

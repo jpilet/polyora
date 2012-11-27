@@ -78,6 +78,7 @@ class kpt_tracker;
 //! Stores a frame with its pyramid image
 struct pyr_frame : tframe {
 	PyrImage *pyr;
+        std::vector<cv::Mat> cv_pyramid;
 	kpt_tracker *tracker;
 
 	pyr_frame(PyrImage *p, int bits=4);  
@@ -187,7 +188,9 @@ public:
 	 */
 	virtual pyr_frame *process_frame_pipeline(IplImage *im);
 
-protected: pyr_frame *create_frame(IplImage *im);
+protected:
+        pyr_frame *create_frame(IplImage *im);
+        static void buildPyramid(pyr_frame *frame);
 public:
 	pyr_frame *add_frame(IplImage *im);
 	void traverse_tree(pyr_frame *frame);

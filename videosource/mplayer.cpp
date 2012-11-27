@@ -119,16 +119,18 @@ bool MPlayerVideoSource::execPlayer() {
 #endif
 
 	if (!searchString(info_pipe, "success:")
-			|| !searchString(info_pipe, "VDec: vo config request - ")) {
+			|| !(searchString(info_pipe, "VIDEO:")
+                                && searchString(info_pipe, "] "))) {
 		closePlayer();
 		return false;
 	}
 
-	if (fscanf(info_pipe, "%d %*c %d", &width, &height) <= 0) {
+	if (fscanf(info_pipe, "%dx%d", &width, &height) <= 0) {
 		fprintf(stderr, "Error while reading mencoder output: unable to determine image resolution.");
 		closePlayer();
 		return false;
 	}
+        fprintf(stderr, "MPlayer: got resolution %dx%d\n", width, height);
 
 	// info pipe -> into non-blocking mode
 	fcntl(fileno(info_pipe), F_SETFL, fcntl(fileno(info_pipe), F_GETFL) |O_NONBLOCK);

@@ -200,6 +200,14 @@ bool kpt_tracker::load_clusters(const char *fn)
 	return true;
 }
 
+void kpt_tracker::buildPyramid(pyr_frame *frame) {
+	frame->pyr->build();
+        cv::Mat im((*frame->pyr)[0]);
+        int levels = cv::buildOpticalFlowPyramid(im, frame->cv_pyramid,
+                                                 cv::Size(patch_tagger::patch_size,
+                                                          patch_tagger::patch_size), 4);
+}
+
 void kpt_tracker::set_size(int width, int height, int levels, int )
 {
 	nb_levels = levels;
@@ -221,7 +229,8 @@ pyr_frame *kpt_tracker::process_frame_pipeline(IplImage *im) {
 	{
 	if (im) {
 		//TaskTimer::pushTask("pyramid");
-		new_f->pyr->build();
+                buildPyramid(new_f);
+
 		//TaskTimer::popTask();
 		//TaskTimer::pushTask("Feature detection");
 		detect_keypoints(new_f);
@@ -245,7 +254,7 @@ pyr_frame *kpt_tracker::process_frame_pipeline(IplImage *im) {
 pyr_frame *kpt_tracker::process_frame(IplImage *im) {
 	pyr_frame *f = create_frame(im);
 	TaskTimer::pushTask("pyramid");
-	f->pyr->build();
+        buildPyramid(f);
 	TaskTimer::popTask();
 	TaskTimer::pushTask("Feature detection");
 	detect_keypoints(f);
@@ -271,7 +280,7 @@ void pyr_frame::append_to(tracks &t)
 pyr_frame *kpt_tracker::add_frame(IplImage *im) 
 {
 	pyr_frame *f = create_frame(im);
-	f->pyr->build();
+        buildPyramid(f);
 	f->append_to(*this);
 	return f;
 }
@@ -509,6 +518,7 @@ void kpt_tracker::track_ncclk(pyr_frame *f, pyr_frame *lf)
 	TaskTimer::popTask();
 	TaskTimer::pushTask("LK tracking");
 
+#if 0
 	int nft=0;
 #define MAX_TRACK_FT 512
 	CvPoint2D32f prev_ft[MAX_TRACK_FT];
@@ -536,9 +546,55 @@ void kpt_tracker::track_ncclk(pyr_frame *f, pyr_frame *lf)
 			//if (nft>=(nmatches>>3)) break;
 		}
 	}
+#else
+        std::vector<cv::Point2f> prev_ft;
+        std::vector<cv::Point2f> curr_ft;
+        std::vector<unsigned char> lk_status;
+        std::vector<pyr_keypoint *> prev_kpt;
+        std::vector<float> lk_error;
+        prev_ft.reserve(512);
+        curr_ft.reserve(512);
+        lk_status.reserve(512);
+        prev_kpt.reserve(512);
+
+	// try to track lost keypoints using template matching
+	for (keypoint_frame_iterator it(lf->points.begin()); !it.end(); ++it) {
+		pyr_keypoint *k = (pyr_keypoint *) it.elem();
+		// a track was lost on frame t-1..
+                if (k->matches.next==0 && k->track_is_longer(3)
+                    && ((pyr_track*)k->track)->nb_lk_tracked <= k->track_length()/2) {
+			float ku = k->u;
+			float kv = k->v;
+                        prev_ft.push_back(cv::Point(ku, kv));
+
+			// prediction
+			curr_ft.push_back(cv::Point(ku - k->matches.prev->u + ku,
+                                                    kv - k->matches.prev->v + kv)); 
+                        prev_kpt.push_back(k);
+		}
+	}
+        int nft = prev_ft.size();
+
+#endif
+
+#if 0
 	myCalcOpticalFlowPyrLK(lf->pyr, f->pyr, 
 			prev_ft, curr_ft, nft, cvSize(patch_size,patch_size), f->pyr->nbLev, lk_status,
                         0, cvTermCriteria(CV_TERMCRIT_ITER|CV_TERMCRIT_EPS,3,0.1), CV_LKFLOW_INITIAL_GUESSES);
+#else
+        if (nft > 0) {
+            cv::calcOpticalFlowPyrLK(lf->cv_pyramid, f->cv_pyramid,
+                                     prev_ft, curr_ft, lk_status, lk_error,
+                                     cv::Size(patch_size, patch_size),
+                                     4,
+                                     cv::TermCriteria(cv::TermCriteria::COUNT
+                                                      + cv::TermCriteria::EPS, 3, 0.1),
+                                     cv::OPTFLOW_USE_INITIAL_FLOW
+                                    );
+        }
+
+#endif
+
 	int nsaved=0;
 #ifdef WITH_SIFTGPU
 	vector<pyr_keypoint *> need_descriptors;

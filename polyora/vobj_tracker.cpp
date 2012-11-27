@@ -20,7 +20,7 @@
 #include <iostream>
 #include <algorithm>
 
-#include <opencv2\calib3d\calib3d.hpp>
+#include <opencv2/calib3d/calib3d.hpp>
 
 #include "vobj_tracker.h"
 #include "homography4.h"
@@ -84,14 +84,14 @@ pyr_frame *vobj_tracker::process_frame_pipeline(IplImage *im)
 	{
 #pragma omp master
 	{
-	if (im) {
-		//TaskTimer::pushTask("pyramid");
-		new_f->pyr->build();
-		//TaskTimer::popTask();
-		//TaskTimer::pushTask("Feature detection");
-		detect_keypoints(new_f);
-		//TaskTimer::popTask();
-	}
+            if (im) {
+                //TaskTimer::pushTask("pyramid");
+                kpt_tracker::buildPyramid(new_f);
+                //TaskTimer::popTask();
+                //TaskTimer::pushTask("Feature detection");
+                detect_keypoints(new_f);
+                //TaskTimer::popTask();
+            }
 	}
 #pragma omp single
 	{

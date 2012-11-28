@@ -18,6 +18,7 @@ INCLUDE(CPack)
 SET(polyora_CMAKE_DIR "${polyora_SOURCE_DIR}/cmake")
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${polyora_CMAKE_DIR}")
 
+set(OpenMP_LIB "")
 FIND_PACKAGE(OpenMP)
 IF (OPENMP_FOUND)
 	OPTION(POLYORA_USE_OPENMP "Use OpenMP for multithreading" ON)	
@@ -25,6 +26,10 @@ IF (OPENMP_FOUND)
 		SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_CXX_FLAGS}")
 		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 		SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_CXX_FLAGS}")
+                if (UNIX) 
+                        # TODO: check if gomp is needed / exists.
+                        SET(OpenMP_LIB gomp)
+                endif (UNIX)
 	ENDIF(POLYORA_USE_OPENMP)
 ENDIF(OPENMP_FOUND)
 

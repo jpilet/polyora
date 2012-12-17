@@ -33,6 +33,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <map>
+#include <unistd.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -291,11 +292,12 @@ void mean_t::accumulate(float a, float b, descriptor_t *d)
 double mean_t::distance(descriptor_t *d) {
 	float dist=0;
 	for (unsigned i=0; i<descriptor_size; i++) {
-		//assert(finite(mean[i]));
-		//assert(finite(d->descriptor[i]));
+		assert(finite(mean[i]));
+		assert(finite(d->descriptor[i]));
 		//dist -= mean[i]*d->descriptor[i];
 		float di = mean[i]-(float)d->descriptor[i];
 		dist += di*di;
+                assert(finite(dist));
 	}
 	assert(finite(dist));
 	return dist;
@@ -397,7 +399,7 @@ node_t *kmean_tree::load(sqlite3 *db)
 	if (rc != SQLITE_OK) {
 		cerr << "Error: " << sqlite3_errmsg(db) << endl;
 		cerr << "While compiling: " << query << endl;
-		return false;
+		return 0;
 	}
 
 	while (sqlite3_step(stmt) == SQLITE_ROW) {
@@ -416,7 +418,7 @@ node_t *kmean_tree::load(sqlite3 *db)
 	if (rc != SQLITE_OK) {
 		cerr << "Error: " << sqlite3_errmsg(db) << endl;
 		cerr << "While compiling: " << query << endl;
-		return false;
+		return 0;
 	}
 
 	// fix pointers
@@ -468,7 +470,7 @@ node_t *kmean_tree::load(const char *filename)
 	FILE *f = fopen(filename,"rb");
 	if (!f) {
 		perror(filename);
-		return false;
+		return 0;
 	}
 	node_t *tree = new node_t;
 	if (!tree->load(f)) {

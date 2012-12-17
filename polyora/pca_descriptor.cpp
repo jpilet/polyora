@@ -21,12 +21,12 @@ void IlluminationNormalizeMeanStdDev(const Mat& warped, Mat* dest) {
     //cv::Range range(warped.rows / 4, (warped.rows * 3) / 4);
     cv::meanStdDev(warped, mean, stddev);
 
-    double normalize = (stddev[0] == 0 ? 1.0 / 255.0 : 1.0 / stddev[0]);
+    double normalize = (fabs(stddev[0]) < 1 ? 1.0 / 255.0 : 1.0 / stddev[0]);
     warped.convertTo(*dest, dest->type(), normalize, - mean[0] * normalize);
 }
 
 void IlluminationNormalizeEqualizeHistogram(const Mat& warped, Mat* dest) {
-    Mat equalized;
+    Mat equalized(warped.size(), CV_8UC1);
     cv::equalizeHist(warped, equalized);
     equalized.convertTo(*dest, dest->type(), 1.0/255.0, 0);
 }
@@ -71,7 +71,7 @@ void ExtractPatch(const pyr_keypoint& point, cv::Size patch_size, Mat* dest) {
 	sa, ca, sa*tx + ca*ty + t2y,
     };
     Mat transform(2, 3, CV_64FC1, transform_data);
-    Mat warped;
+    Mat warped(patch_size, CV_8UC1);
     cv::warpAffine(Mat(im), warped, transform, patch_size,
 	    cv::INTER_LINEAR + cv::WARP_INVERSE_MAP, cv::BORDER_REPLICATE);
 

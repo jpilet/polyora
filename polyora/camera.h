@@ -2,6 +2,7 @@
 #define _CAMERA_H
 
 #include "matvec.h"
+#include <vector>
 
 /*!
  * \brief This class represents a calibrated camera.
@@ -41,12 +42,18 @@ public:
 
   bool setPlanes(double near, double far);
 
+  // Return a matrix containing:
+  // [ f 0 cx ]
+  // [ 0 g cy ]
+  // [ 0 0  1 ]
+  cv::Mat getIntrinsics() const;
+
   bool getUndistortMap(CvMat *xmap, CvMat *ymap);
 
   //protected:
   // intrinsic parameters
   double f, g, cx, cy, s;
-  double distortion;
+  cv::Mat distortion;
   Mat3x3 eyeToImageMat; /* ~ Projection Matrix in Direct3D */
   int width, height;
   double farPlane, nearPlane;
@@ -89,6 +96,15 @@ public:
   const Mat3x4 &getEyeToWorldMat() const { return eyeToWorldMat; }
   const Mat3x4 &getWorldToImageMat() const { return worldToImageMat; }
 
+  // Returns the output of cv::Rodrigues
+  cv::Mat getExpMapRotation() const;
+
+  cv::Mat getTranslation() const;
+  void setTranslation(const cv::Mat &translation);
+
+  // Uses cv::Rodrigues to compute the rotation matrix
+  void setExpMapRotation(const cv::Mat &rotation_params);
+
   void cmpWorldToImageMat();
 
   //! Save the camera in a tdir file. Returns true on success, false on failure.
@@ -98,6 +114,7 @@ public:
   virtual void resizeImage(int newW, int newH);
 
   void setPoseFromHomography(const double H[3][3]);
+  void setPoseFromHomography(const float H[3][3]);
 
 protected:
   // extrinsic parameters

@@ -28,6 +28,9 @@ ADD_LIBRARY(polyora
 	homography4.h homography4.cpp fvec4.h
 	polyora.h
 	include_windows.h
+	camera.h camera.cpp
+	matvec.h matvec.cpp
+	pose.cpp pose.h
 	# FAST is not included in the polyora distribution.
 	# fast.c fast.h fast_10.c fast_11.c fast_12.c fast_9.c nonmax.c
 	)

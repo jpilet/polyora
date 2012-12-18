@@ -45,6 +45,10 @@
 #ifdef WIN32
 #include <windows.h>
 #include <GL/gl.h>
+
+#ifndef GL_BGR_EXT
+#define GL_BGR_EXT 0x80E0
+#endif
 #define HAVE_GL
 #endif
 

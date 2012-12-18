@@ -22,7 +22,7 @@ Street, Fifth Floor, Boston, MA 02110-1301, USA
 #define YAPE_H
 
 #include <vector>
-#include <opencv/cv.h>
+#include <opencv2/core/core_c.h>
 
 #include "pyrimage.h"
 #include "keypoint.h"

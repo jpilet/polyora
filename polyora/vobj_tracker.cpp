@@ -19,9 +19,13 @@
 */
 #include <iostream>
 #include <algorithm>
+
+#include <opencv2/calib3d/calib3d.hpp>
+
 #include "vobj_tracker.h"
 #include "homography4.h"
 #include "timer.h"
+
 
 #ifdef min
 #undef min
@@ -216,7 +220,7 @@ int get_correspondences(vobj_frame *frame, visual_object *obj, visual_object::co
 			visual_object::db_keypoint_vector::iterator begin, end;
 			obj->find(k->id,begin,end);
 			for (visual_object::db_keypoint_vector::iterator i(begin); i!=end; i++) {
-                                corresp.push_back(visual_object::correspondence(const_cast<db_keypoint*>(&(*i)), k, .1));
+                                corresp.push_back(visual_object::correspondence(const_cast<db_keypoint*>(&(*i)), k, .1f));
 				if (matched_cids.insert(k->id).second) {
 					id_cluster_collection::id2cluster_map::iterator id_it = vdb->id2cluster.find(k->id);
 					if (id_it != vdb->id2cluster.end())
@@ -232,7 +236,7 @@ int get_correspondences(vobj_frame *frame, visual_object *obj, visual_object::co
 		npts++;
 
 		bool added=false;
-		track->id_histo.sort_results_min_ratio(.7);
+		track->id_histo.sort_results_min_ratio(.7f);
 		for(incremental_query::iterator it(track->id_histo.begin()); it!=track->id_histo.end(); ++it)
 		{
 			int cid = it->c->id;

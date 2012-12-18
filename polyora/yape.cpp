@@ -707,7 +707,7 @@ int yape::get_local_maxima(IplImage * image, int R, float scale /*, keypoint * p
           keypoint p;
           p.u = float(x);
           p.v = float(y);
-          p.scale = scale;
+          p.scale = int(scale);
           p.score = float(abs(Sb[0]));
 
           if (use_bins)

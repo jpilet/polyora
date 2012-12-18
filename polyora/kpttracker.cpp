@@ -30,6 +30,8 @@ using namespace std;
 #endif
 #include "timer.h"
 
+#include <opencv2/video/tracking.hpp>
+
 #ifdef WITH_ADAPT_THRESH
 #include <adapt_thresh.h>
 #endif
@@ -104,8 +106,8 @@ kpt_tracker::kpt_tracker(int width, int height, int levels, int max_motion, bool
 	license();
         patch_size= patch_tagger::patch_size;
         //patch_size= 8;
-	ncc_threshold=.88;
-	ncc_threshold_high=.9;
+	ncc_threshold=.88f;
+	ncc_threshold_high=.9f;
 	tree=0;
 	id_clusters=0;
 	pipeline_stage1=0;
@@ -472,7 +474,7 @@ void kpt_tracker::track_ncclk(pyr_frame *f, pyr_frame *lf)
 			ku = (ku - kpt->matches.prev->u) + ku;
 			kv = (kv - kpt->matches.prev->v) + kv;
 		}
-		pyr_keypoint *r = best_match(kpt, f->points.search(ku, kv, max_motion));
+		pyr_keypoint *r = best_match(kpt, f->points.search(ku, kv, float(max_motion)));
 		if (r) {
 			if (!r->matches.prev) {
 				nmatches++;
@@ -490,7 +492,7 @@ void kpt_tracker::track_ncclk(pyr_frame *f, pyr_frame *lf)
 	for (keypoint_frame_iterator it(f->points.begin()); !it.end(); ++it) 
 	{
 		pyr_keypoint *k = (pyr_keypoint *) it.elem();
-		pyr_keypoint *r = best_match(k, lf->points.search(k->u, k->v, max_motion));
+		pyr_keypoint *r = best_match(k, lf->points.search(k->u, k->v, float(max_motion)));
 		if (r) {
 			if (r->matches.next != k) {
 				// hum false alarm.. unlink.

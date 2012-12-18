@@ -30,6 +30,7 @@
 #include <QTextEdit>
 
 #include "camera.h"
+#include "pose.h"
 
 #ifndef M_2PI
 #define M_2PI 6.283185307179586476925286766559f
@@ -374,7 +375,8 @@ GLuint track3d_view::get_texture_for_obj(visual_object *obj)
 	return texture;
 }
 
-void track3d_view::augment3d(visual_object *obj, float H[3][3]) {
+void track3d_view::augment3d(const vobj_frame *frame,
+                             const vobj_instance *instance) {
 
 	// If the video mode has changed, the camera should be re-calibrated.
 	// Otherwise, it is possible to set a new resolution:
@@ -384,12 +386,12 @@ void track3d_view::augment3d(visual_object *obj, float H[3][3]) {
 	double Hd[3][3];
 	for (int i = 0; i< 3; ++i) {
 	    for (int j = 0; j< 3; ++j) {
-		Hd[i][j] = H[i][j];
+        Hd[i][j] = instance->transform[i][j];
 	    }
 	}
 
 	PerspectiveCamera cam(camera);
-	cam.setPoseFromHomography(Hd);
+  computeObjectPose(frame, instance, &cam);
 	cam.flip();
 
 	// cout << camera << endl;
@@ -428,7 +430,7 @@ void track3d_view::draw_instances(vobj_frame *frame)
 			it != frame->visible_objects.end(); ++it)
 	{
 		if (it->object->get_flags() & visual_object::VERIFY_HOMOGRAPHY) {
-			augment3d(it->object, it->transform);
+			augment3d(frame, &(*it));
 		}
 	}
 }

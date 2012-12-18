@@ -117,7 +117,7 @@ private:
 
 	void summary();
 	void homography_augment(visual_object *obj, float H[3][3]);
-	void augment3d(visual_object *obj, float H[3][3]);
+  void augment3d(const vobj_frame *frame, const vobj_instance *instance);
 	void draw_instances(vobj_frame *frame);
 	GLuint get_texture_for_obj(visual_object *obj);
 

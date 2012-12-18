@@ -45,6 +45,7 @@ typedef std::vector<vobj_instance> vobj_instance_vector;
 class vobj_keypoint : public pyr_keypoint 
 {
 public:
+  // TODO(jpilet): replace visual_object with vobj_instance.
 	visual_object *vobj;
 	db_keypoint *obj_kpt;
 

@@ -115,6 +115,7 @@ private:
 	void draw_all_tracks(pyr_frame *frame);
 	void draw_selected_track();
 	void draw_icon(point2d *c, const CvArr *image, float w, float h, float max_width, int margin_x=0, int margin_y=0);
+    void draw_icon(point2d *c, cv::Mat image, float w, float h, float max_width, int margin_x, int margin_y);
 	void draw_entry_image();
 	void drawAnnotations(float dx, float dy);
 	void addAnnotation(float x, float y);

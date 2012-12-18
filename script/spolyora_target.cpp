@@ -219,7 +219,7 @@ bool SPolyoraHomography::transformPoint(const SPoint* src, SPoint* dst) {
 
 bool SPolyoraHomography::inverseTransformPoint(const SPoint* src, SPoint* dst) {
     if (!src || !dst) {
-	return false;
+      return false;
     }
     const float input[] = { src->getX(), src->getY() };
     float transformed[2];

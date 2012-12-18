@@ -931,7 +931,7 @@ void pyr_track::point_added(tkeypoint *p)
 	//if (pk->id && pk->track_is_longer(4)) {
 
 		if (f->tracker->id_clusters && id_histo.query_cluster.total>0) {
-			incremental_query::iterator it = id_histo.sort_results_min_ratio(.98);
+			incremental_query::iterator it = id_histo.sort_results_min_ratio(.98f);
 			//incremental_query::iterator it = id_histo.sort_results(2);
 			if (it != id_histo.end()) {
 				pk->cid = it->c->id;

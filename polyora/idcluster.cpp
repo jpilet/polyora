@@ -58,6 +58,7 @@ void id_cluster_collection::merge_clusters(id_cluster *a, id_cluster *b)
 
 id_cluster *id_cluster_collection::get_best_cluster(id_cluster *c, float *dist)
 {
+	assert(c != 0);
 	id_cluster *r;
 	cluster_score_map scores;
 	get_scores(c, scores, &r, dist);

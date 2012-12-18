@@ -31,7 +31,7 @@
 #include "glbox.h"
 #include "ipltexture.h"
 #include <polyora/polyora.h>
-#include "camera.h"
+#include <polyora/camera.h>
 
 class track3d_view : public GLBox {
 Q_OBJECT

@@ -29,8 +29,7 @@
 #include <math.h>
 #include <QTextEdit>
 
-#include "camera.h"
-#include "pose.h"
+#include <polyora/pose.h>
 
 #ifndef M_2PI
 #define M_2PI 6.283185307179586476925286766559f
@@ -334,6 +333,9 @@ void track3d_view::createTracker()
 		if (!camera.loadOpenCVCalib("out_camera_data.yml")) {
 			cout << "Failed to load out_camera_data.yml. Using default values.\n";
 		}
+		int w,h;
+		vs->getSize(w,h);
+		camera.resizeImage(w, h);
 		camera.flip();
 	}
 }

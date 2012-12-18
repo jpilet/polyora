@@ -683,11 +683,11 @@ void PerspectiveCamera::setExpMapRotation(const cv::Mat &rotation_params) {
 
 cv::Mat PerspectiveCamera::getTranslation() const {
   return cv::Mat(3, 4, CV_64FC1, const_cast<double *>(&worldToEyeMat.m[0][0]))
-    (cv::Rect(2, 0, 1, 3)).clone();
+    (cv::Rect(3, 0, 1, 3)).clone();
 }
 
 void PerspectiveCamera::setTranslation(const cv::Mat& translation) {
-  translation.copyTo(cv::Mat(3, 4, CV_64FC1, &worldToEyeMat.m[0][0])(cv::Rect(2, 0, 1, 3)));
+  translation.copyTo(cv::Mat(3, 4, CV_64FC1, &worldToEyeMat.m[0][0])(cv::Rect(3, 0, 1, 3)));
   cmpWorldToImageMat();
 }
 

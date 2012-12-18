@@ -1,5 +1,7 @@
 #include "pose.h"
 
+namespace {
+
 void getCorrespondencesForInstance(
     const vobj_frame *frame_, const vobj_instance *instance,
     std::vector<cv::Point3f> *object_points,
@@ -26,6 +28,8 @@ void getCorrespondencesForInstance(
   }
 }
 
+}  // namespace
+
 void computeObjectPose(const vobj_frame *frame, const vobj_instance *instance,
                        PerspectiveCamera *camera) {
   std::vector<cv::Point3f> object_points;
@@ -34,6 +38,7 @@ void computeObjectPose(const vobj_frame *frame, const vobj_instance *instance,
   getCorrespondencesForInstance(frame, instance, &object_points, &projections);
 
   camera->setPoseFromHomography(instance->transform);
+
   cv::Mat intrinsics = camera->getIntrinsics();
   cv::Mat rotation = camera->getExpMapRotation();
   cv::Mat translation = camera->getTranslation();
@@ -41,6 +46,7 @@ void computeObjectPose(const vobj_frame *frame, const vobj_instance *instance,
                rotation, translation, 
                true, // use extrinsic guess
                CV_ITERATIVE);
+
   camera->setExpMapRotation(rotation);
   camera->setTranslation(translation);
 

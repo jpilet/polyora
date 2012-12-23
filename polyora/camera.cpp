@@ -31,7 +31,6 @@ void PerspectiveProjection::set(int w, int h, double f, double g, double cx, dou
   this->cx = cx;
   this->cy = cy;
   this->s = s;
-  distortion = 0;
 
   nearPlane = f/16;
   farPlane = f*16;
@@ -163,18 +162,19 @@ void PerspectiveProjection::resizeImage(int newW, int newH)
 }
 
 bool PerspectiveProjection::loadOpenCVCalib(const char* filename) {
-	cv::FileStorage fs(filename, cv::FileStorage::READ);
-    if (!fs.isOpened()) return false;
+  cv::FileStorage fs(filename, cv::FileStorage::READ);
+  if (!fs.isOpened()) return false;
 
-	cv::Mat K;
-	fs["camera_matrix"] >> K;
-    int width = fs["image_width"];
-    int height = fs["image_height"];
-    
-    set(width, height, 
-        K.at<double>(0,0), K.at<double>(1,1),
-        K.at<double>(0,2), K.at<double>(1,2));
-	return true;
+  cv::Mat K;
+  fs["camera_matrix"] >> K;
+  int width = fs["image_width"];
+  int height = fs["image_height"];
+
+  set(width, height, 
+      K.at<double>(0,0), K.at<double>(1,1),
+      K.at<double>(0,2), K.at<double>(1,2));
+  fs["distortion_coefficients"] >> distortion;
+  return true;
 }
 
 
@@ -194,7 +194,7 @@ void PerspectiveCamera::resizeImage(int newW, int newH)
 
 bool PerspectiveProjection::getUndistortMap(CvMat *xmap, CvMat *ymap)
 {
-  if (distortion == 0) return false;
+  if (distortion.size() != cv::Size(1, 1)) return false;
 
   for (int y=0; y<xmap->height; y++) {
     for (int x=0; x<xmap->width; x++) {
@@ -203,8 +203,8 @@ bool PerspectiveProjection::getUndistortMap(CvMat *xmap, CvMat *ymap)
       image[0] = (float)( (x - (cx))/f );
       image[1] = (float)( (y - (cy))/g );
 
-      distor[0] = (float) (image[0] - distortion * image[0] * (image[0]*image[0]+image[1]*image[1]));
-      distor[1] = (float) (image[1] - distortion * image[1] * (image[0]*image[0]+image[1]*image[1]));
+      distor[0] = (float) (image[0] - distortion.at<double>(0, 0) * image[0] * (image[0]*image[0]+image[1]*image[1]));
+      distor[1] = (float) (image[1] - distortion.at<double>(0, 0) * image[1] * (image[0]*image[0]+image[1]*image[1]));
 
 
       cvSetReal2D(xmap, y, x, distor[0]*f + cx);
@@ -212,6 +212,17 @@ bool PerspectiveProjection::getUndistortMap(CvMat *xmap, CvMat *ymap)
     }
   }
   return true;
+}
+
+cv::Mat PerspectiveProjection::getIntrinsics() const {
+  cv::Mat result(3, 3, CV_64FC1);
+  result = cv::Scalar(0);
+  result.at<double>(0, 0) = f;
+  result.at<double>(1, 1) = g;
+  result.at<double>(0, 2) = cx;
+  result.at<double>(1, 2) = cy;
+  result.at<double>(2, 2) = 1;
+  return result;
 }
 
 PerspectiveCamera::PerspectiveCamera()
@@ -398,7 +409,8 @@ bool PerspectiveCamera::loadTdir(const char *tdirFile, int w, int h)
     if (memcmp(line, "distortion:", 11)==0) {
       double d;
       if (sscanf(line+11, "%lf", &d)==1) {
-        distortion = d;
+        distortion = cv::Mat(1, 1, CV_64FC1);
+        distortion.at<double>(0, 0) = d;
         printf("Camera distortion: %f\n", d);
       }
     } else if (memcmp(line, "width:", 6)==0) {
@@ -653,6 +665,32 @@ void PerspectiveCamera::setWorldToEyeMat(const Mat3x4 &m)
   cmpWorldToImageMat();
 }
 
+cv::Mat PerspectiveCamera::getExpMapRotation() const {
+  cv::Mat rotation_matrix =
+      cv::Mat(3, 4, CV_64FC1, const_cast<double *>(&worldToEyeMat.m[0][0]))
+      (cv::Rect(0, 0, 3, 3));
+  cv::Mat rotation_params(1, 3, CV_64FC1);
+  cv::Rodrigues(rotation_matrix, rotation_params);
+  return rotation_params;
+}
+
+void PerspectiveCamera::setExpMapRotation(const cv::Mat &rotation_params) {
+  cv::Mat rotation_matrix =
+      cv::Mat(3, 4, CV_64FC1, &worldToEyeMat.m[0][0])(cv::Rect(0, 0, 3, 3));
+  cv::Rodrigues(rotation_params, rotation_matrix);
+  cmpWorldToImageMat();
+}
+
+cv::Mat PerspectiveCamera::getTranslation() const {
+  return cv::Mat(3, 4, CV_64FC1, const_cast<double *>(&worldToEyeMat.m[0][0]))
+    (cv::Rect(3, 0, 1, 3)).clone();
+}
+
+void PerspectiveCamera::setTranslation(const cv::Mat& translation) {
+  translation.copyTo(cv::Mat(3, 4, CV_64FC1, &worldToEyeMat.m[0][0])(cv::Rect(3, 0, 1, 3)));
+  cmpWorldToImageMat();
+}
+
 bool PerspectiveCamera::saveTdir(const char *file)
 {
   ofstream f(file);
@@ -744,5 +782,15 @@ void PerspectiveCamera::setPoseFromHomography(const double H_array[3][3]) {
     result.col(3) = KinvH.col(2) / ((n0 + n1) * .5);
 
     setWorldToEyeMat(wte);
+}
+
+void PerspectiveCamera::setPoseFromHomography(const float H_array[3][3]) {
+  double double_array[3][3];
+  for (int j = 0; j < 3; ++j) {
+    for (int i = 0; i < 3; ++i) {
+      double_array[j][i] = H_array[j][i];
+    }
+  }
+  setPoseFromHomography(double_array);
 }
 

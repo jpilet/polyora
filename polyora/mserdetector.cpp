@@ -24,8 +24,8 @@ MSERDetector::MSERDetector() : storage(cvCreateMemStorage(0)), mean(cv::Size(2,1
 	params = cvMSERParams();
 	params.minArea=3;
 	params.delta=5;
-	params.minDiversity=0.7;
-	params.maxVariation = .15;
+	params.minDiversity=0.7f;
+	params.maxVariation = .15f;
 	params.maxArea=300;
 }
 

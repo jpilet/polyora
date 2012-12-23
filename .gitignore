@@ -1,9 +1,7 @@
 # Ignore rules
-
 .DS_Store
 *.user
-build/
-build_mingw
+build*
 bin/
 lib/
 install/

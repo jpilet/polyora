@@ -34,7 +34,7 @@ namespace kmean_tree {
         static const unsigned descriptor_size=256; // use image patch as descriptor
 #endif
 #ifdef WITH_PCA_DESCRIPTOR
-        static const unsigned descriptor_size=32; // number of PCA modes to use.
+        static const unsigned descriptor_size = 64; // number of PCA modes to use.
 #endif
 #endif
 

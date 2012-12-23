@@ -32,6 +32,7 @@
 #define M_PI 3.141592653589793238462643383279f
 #endif
 #ifdef WIN32
+#define finite _finite
 static inline double drand48() {
 	return (double)rand()/(double)RAND_MAX;
 }
@@ -192,7 +193,7 @@ void patch_tagger::precalc() {
 	}
 
 #ifdef WITH_PCA_DESCRIPTOR
-        pca_modes = LoadPcaVectors(kmean_tree::descriptor_size);
+		pca.load(kmean_tree::descriptor_size);
 #endif
 }
 
@@ -273,19 +274,19 @@ void patch_tagger::cmp_orientation(CvMat *patch, patch_tagger::descriptor *d) {
 	float b = (y0-y2)/-2.0f;
 	float x = -b/(2*a);
 
-        if (finite(x)) {
-            d->orientation = (max_o + x) * (M_2PI / nb_orient);
-        } else {
-            d->orientation = (max_o) * (M_2PI / nb_orient);
-        }
-        if (d->orientation<0) {
-            d->orientation += M_2PI;
-        }
-        if (d->orientation < 0) {
-            std::cerr << __FUNCTION__ << ":" << __LINE__ << ": orientation: " << d->orientation << std::endl;
-        }
-        assert(finite(d->orientation));
-        assert(d->orientation >= 0);
+  if (finite(x)) {
+    d->orientation = (max_o + x) * (M_2PI / nb_orient);
+  } else {
+    d->orientation = (max_o) * (M_2PI / nb_orient);
+  }
+  if (d->orientation<0) {
+    d->orientation += M_2PI;
+  }
+  if (d->orientation < 0) {
+    std::cerr << __FUNCTION__ << ":" << __LINE__ << ": orientation: " << d->orientation << std::endl;
+  }
+  assert(finite(d->orientation));
+  assert(d->orientation >= 0);
 }	
 
 unsigned patch_tagger::project(patch_tagger::descriptor *d) 
@@ -315,7 +316,7 @@ void patch_tagger::descriptor::array(float *array)
 #ifdef WITH_PCA_DESCRIPTOR
         cv::Mat vector(patch_size * patch_size, 1, CV_32FC1, _rotated);
         cv::Mat projected(kmean_tree::descriptor_size, 1, CV_32FC1, array); 
-        PcaProject(patch_tagger::singleton()->pca_modes, vector, &projected);
+		patch_tagger::singleton()->pca.project(vector, &projected);
 #else
 #error please either define WITH_PATCH_AS_DESCRIPTOR or WITH_PCA_DESCRIPTOR.
 #endif
@@ -333,3 +334,12 @@ void patch_tagger::descriptor::array(float *array)
 	*/
 }
 
+void patch_tagger::unproject(float *descriptor, cv::Mat *dst) {
+#ifdef WITH_PATCH_AS_DESCRIPTOR
+    *dst = cv::Mat(patch_tagger::patch_size, patch_tagger::patch_size, CV_32FC1, descriptor);
+#endif
+#ifdef WITH_PCA_DESCRIPTOR
+    cv::Mat vector(kmean_tree::descriptor_size, 1, CV_32FC1, descriptor);
+	singleton()->pca.unproject(vector, dst);
+#endif
+}

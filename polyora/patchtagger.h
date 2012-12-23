@@ -23,11 +23,12 @@
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/core_c.h>
+#include "pca_descriptor.h"
 
 class patch_tagger {
-public:
+  public:
 
-        static const unsigned patch_size = 16;
+    static const unsigned patch_size = 16;
 	static const unsigned nb_zone = 4;
 	static const unsigned nb_orient = 16;
 	static const unsigned nb_test = 16;
@@ -52,7 +53,7 @@ public:
 
 	void cmp_orientation(CvMat *patch, patch_tagger::descriptor *d);
 	unsigned project(patch_tagger::descriptor *d);
-	
+    static void unproject(float *descriptor, cv::Mat *dst);
 
 	void precalc();
 
@@ -91,8 +92,8 @@ protected:
 	CvMat mask;
 	static void compute_sift_descriptor(float* descr_pt, cv::Mat patch);
 
-        // Used only when WITH_PCA_DESCRIPTOR is defined.
-        cv::Mat pca_modes;
+    // Used only when WITH_PCA_DESCRIPTOR is defined.
+    PatchPCA pca;
 };
 
 #endif

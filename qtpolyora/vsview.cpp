@@ -26,7 +26,9 @@
 #include <polyora/timer.h>
 #include <math.h>
 
-
+#ifdef WIN32
+#define finite _finite
+#endif
 
 #ifndef M_2PI
 #define M_2PI 6.283185307179586476925286766559f
@@ -37,33 +39,43 @@
 
 using namespace std;
 
+namespace {
+
 const int fps_stat_bin_size=20;
 
 void gl_hash_mark(unsigned code, float x, float y, float orient=0, float r = 5);
 
 struct id_pair {
-	unsigned a, b;
-	id_pair(unsigned id1, unsigned id2) {
-		if (id1 < id2) {
-			a= id1;
-			b= id2;
-		} else {
-			a=id2;
-			b=id1;
-		}
-	}
+    unsigned a, b;
+    id_pair(unsigned id1, unsigned id2) {
+        if (id1 < id2) {
+            a= id1;
+            b= id2;
+        } else {
+            a=id2;
+            b=id1;
+        }
+    }
 
-bool operator< (const id_pair &p)const 
-{
-	if (a < p.a) return true;
-	if (a ==  p.a) return b < p.b;
-	return false;
-}
+    bool operator< (const id_pair &p)const 
+    {
+        if (a < p.a) return true;
+        if (a ==  p.a) return b < p.b;
+        return false;
+    }
 };
+
+void descriptorToImage(float *descriptor, CvMat* image) {
+    cv::Mat im;
+    patch_tagger::singleton()->unproject(descriptor, &im);
+    *image = im;
+}
+
+}  // namespace
 
 map<id_pair,unsigned> affinity_matrix;
 
-using namespace std;
+
 VSView::VSView(QWidget *parent, const char *name, VideoSource *vs)
 	: GLBox(parent, name), vs(vs),  database(id_cluster_collection::QUERY_IDF_NORMALIZED),
 	query(0)
@@ -584,7 +596,9 @@ void VSView::createTracker()
 	}
 }
 
-static void HSVtoRGB( float *r, float *g, float *b, float h, float s, float v )
+namespace {
+
+void HSVtoRGB( float *r, float *g, float *b, float h, float s, float v )
 {
 	int i;
 	float f, p, q, t;
@@ -613,7 +627,7 @@ static void HSVtoRGB( float *r, float *g, float *b, float h, float s, float v )
 	}
 }
 
-static void gl_hash_color(unsigned key)
+void gl_hash_color(unsigned key)
 {
 	float c[3];
 	HSVtoRGB(c,c+1,c+2, fmod((float)key, 360), 1, 1);
@@ -649,6 +663,8 @@ void gl_hash_mark(unsigned code, float x, float y, float orient, float r)
 	glEnd();
 }
 
+}  // namespace
+
 void VSView::draw_selected_track()
 {
 	if (!selected_kpt) return;
@@ -675,23 +691,59 @@ void VSView::draw_selected_track()
 	float r = 16;
 	point2d pos(0,image->height);
 	for (it=first; !it.end(); --it) {
-#ifndef WITH_SURF
 		pyr_keypoint *k = (pyr_keypoint *) it.elem();
 
 		if (k->node) {
-			CvMat mat; cvInitMatHeader(&mat, patch_tagger::patch_size, patch_tagger::patch_size, CV_32FC1,
-					k->node->mean.mean);
-			point2d pos_down(pos.u, pos.v+r);
-			draw_icon(&pos_down, &mat, r, r, image->width, 0, r);
+            cv::Mat im;
+            patch_tagger::unproject(k->node->mean.mean, &im);
+
+			point2d pos_down(pos.u, pos.v+2*r);
+			draw_icon(&pos_down, im, r, r, image->width, 0, 2*r);
 		}
-                CvMat rotated;
-                cvInitMatHeader(&rotated, patch_tagger::patch_size, patch_tagger::patch_size, CV_32FC1,
+		{
+			float descr[kmean_tree::descriptor_size];
+            k->descriptor.array(descr);
+            cv::Mat im;
+            patch_tagger::unproject(descr, &im);
+			point2d pos_down(pos.u, pos.v+r);
+			draw_icon(&pos_down, im, r, r, image->width, 0, 2*r);
+		}
+        CvMat rotated;
+        cvInitMatHeader(&rotated, patch_tagger::patch_size, patch_tagger::patch_size, CV_32FC1,
                         k->descriptor._rotated);
-		draw_icon(&pos, &rotated, r, r, image->width, 0, r);
-#endif
+		draw_icon(&pos, &rotated, r, r, image->width, 0, 2*r);
 	}
 	glPopMatrix();
 	glPopMatrix();
+}
+
+void VSView::draw_icon(point2d *c, cv::Mat image, float w, float h, float max_width, int margin_x, int margin_y)
+{
+	if (image.empty()) return;
+
+	if (icon_texture_available.begin() == icon_texture_available.end()) {
+		IplTexture t;
+		icon_texture_available.push_back(t);
+	}
+	icon_texture_used.splice(icon_texture_used.begin(), icon_texture_available, icon_texture_available.begin());
+	IplTexture &t(icon_texture_used.front());
+	double min, max;
+    cv::minMaxLoc(image, &min, &max);
+    cv::Mat converted;
+    image.convertTo(converted, CV_8UC1,
+		255.0 / (max - min), 
+		- (255.0 / (max - min)) * min);
+
+	IplImage* converted_ipl = cvCreateImage(converted.size(), IPL_DEPTH_8U, 1); 
+	converted.copyTo(cv::Mat(converted_ipl));
+	t.setImage(converted_ipl);
+	glColor4f(1,1,1,1);
+	t.drawQuad(c->u, c->v, w, h);
+	c->u +=  w + margin_x;
+	if (c->u>=max_width) {
+		c->u = 0;
+		c->v += h + margin_y;
+	}
 }
 
 void VSView::draw_icon(point2d *c, const CvArr *image, float w, float h, float max_width, int margin_x, int margin_y)
@@ -1188,7 +1240,9 @@ void VSView::show_track(pyr_keypoint *k)
 		pyr_track *track = (pyr_track *) k->track;
                 if (tracker->id_clusters) {
                     id_cluster *c = tracker->id_clusters->get_best_cluster(&track->id_histo.query_cluster, &d);
-                    cout << "Best cluster: " << c->id << " score= " << d << endl;
+					if (c) {
+						cout << "Best cluster: " << c->id << " score= " << d << endl;
+					}
                 }
 	} else {
 		cout << "pointer to track is 0\n";

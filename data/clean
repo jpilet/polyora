@@ -1,0 +1,2 @@
+#!/bin/bash
+sqlite3 visual.db "delete from Keypoints; delete from Objects; delete from images; vacuum"

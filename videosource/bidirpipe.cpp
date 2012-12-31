@@ -111,9 +111,12 @@ int bidir_pipe::close(bool k)
 		}
 	} 
 	int stat;
-	while (waitpid(pid, &stat, 0) < 0)
-		if (errno != EINTR)
-			return(-1);	/* error other than EINTR from waitpid() */
+
+  if (0) {
+    while (waitpid(pid, &stat, 0) < 0)
+      if (errno != EINTR)
+        return(-1);	/* error other than EINTR from waitpid() */
+  }
 	pid=0;
 
 	return(stat);	/* return child's termination status */

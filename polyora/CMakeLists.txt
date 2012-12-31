@@ -8,7 +8,6 @@ ADD_LIBRARY(polyora
 	kmeantree.cpp kmeantree.h
 	kpttracker.cpp kpttracker.h
 	mlist.h
-	mylkpyramid.cpp mylkpyramid.h
 	patchtagger.cpp patchtagger.h
 	preallocated.h
 	pyrimage.cpp pyrimage.h

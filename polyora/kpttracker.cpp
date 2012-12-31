@@ -23,7 +23,6 @@ using namespace std;
 #ifdef WITH_FAST
 #include "fast.h"
 #endif
-#include "mylkpyramid.h"
 #include <stack>
 #ifdef _OPENMP
 #include <omp.h>
@@ -445,35 +444,6 @@ void kpt_tracker::track_ncclk(pyr_frame *f, pyr_frame *lf)
 	TaskTimer::popTask();
 	TaskTimer::pushTask("LK tracking");
 
-#if 0
-	int nft=0;
-#define MAX_TRACK_FT 512
-	CvPoint2D32f prev_ft[MAX_TRACK_FT];
-	pyr_keypoint* prev_kpt[MAX_TRACK_FT];
-	char lk_status[MAX_TRACK_FT];
-	CvPoint2D32f curr_ft[MAX_TRACK_FT];
-
-
-	// try to track lost keypoints using template matching
-	for (keypoint_frame_iterator it(lf->points.begin()); !it.end(); ++it) {
-		pyr_keypoint *k = (pyr_keypoint *) it.elem();
-		// a track was lost on frame t-1..
-                if (k->matches.next==0 && k->track_is_longer(4)
-                    && ((pyr_track*)k->track)->nb_lk_tracked <= k->track_length()/2) {
-			float ku = k->u;
-			float kv = k->v;
-			prev_ft[nft].x = ku;
-			prev_ft[nft].y = kv;
-			// prediction
-			curr_ft[nft].x = (ku - k->matches.prev->u) + ku; 
-			curr_ft[nft].y = (kv - k->matches.prev->v) + kv; 
-			prev_kpt[nft] = k;
-			nft++;
-			if (nft>=MAX_TRACK_FT) break;
-			//if (nft>=(nmatches>>3)) break;
-		}
-	}
-#else
         std::vector<cv::Point2f> prev_ft;
         std::vector<cv::Point2f> curr_ft;
         std::vector<unsigned char> lk_status;
@@ -502,13 +472,6 @@ void kpt_tracker::track_ncclk(pyr_frame *f, pyr_frame *lf)
 	}
         int nft = prev_ft.size();
 
-#endif
-
-#if 0
-	myCalcOpticalFlowPyrLK(lf->pyr, f->pyr, 
-			prev_ft, curr_ft, nft, cvSize(patch_size,patch_size), f->pyr->nbLev, lk_status,
-                        0, cvTermCriteria(CV_TERMCRIT_ITER|CV_TERMCRIT_EPS,3,0.1), CV_LKFLOW_INITIAL_GUESSES);
-#else
         if (nft > 0) {
             cv::calcOpticalFlowPyrLK(lf->cv_pyramid, f->cv_pyramid,
                                      prev_ft, curr_ft, lk_status, lk_error,
@@ -519,8 +482,6 @@ void kpt_tracker::track_ncclk(pyr_frame *f, pyr_frame *lf)
                                      cv::OPTFLOW_USE_INITIAL_FLOW
                                     );
         }
-
-#endif
 
 	int nsaved=0;
 

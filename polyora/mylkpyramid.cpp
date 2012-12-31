@@ -548,13 +548,13 @@ void myCalcOpticalFlowPyrLK( const PyrImage* arrA, const PyrImage* arrB,
     CvSize* size = 0;
 
 #ifdef _OPENMP
-    int threadCount = cvGetNumThreads();
+    int threadCount = 1; //cvGetNumThreads();
 #else
 	int threadCount = 1;
 #endif
 	
 #ifndef CV_MAX_THREADS
-#define CV_MAX_THREADS 64
+#define CV_MAX_THREADS 1
 #endif
     float* _patchI[CV_MAX_THREADS];
     float* _patchJ[CV_MAX_THREADS];
@@ -625,7 +625,7 @@ void myCalcOpticalFlowPyrLK( const PyrImage* arrA, const PyrImage* arrB,
             float Gxx = 0, Gxy = 0, Gyy = 0, D = 0, minEig = 0;
             float prev_mx = 0, prev_my = 0;
             int j, x, y;
-            int threadIdx = cvGetThreadNum();
+            int threadIdx = 0; //cvGetThreadNum();
             float* patchI = _patchI[threadIdx];
             float* patchJ = _patchJ[threadIdx];
             float* Ix = _Ix[threadIdx];

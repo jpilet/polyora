@@ -62,6 +62,7 @@ struct Mat3x4 {
 
   void set(CvMat *m);
   void setIdentity();
+  void setZero() { memset(m, 0, sizeof(m)); }
   void setMul(const Mat3x3 &a, const Mat3x4 &b);
   void setMul(const Mat3x4 &a, const Mat3x4 &b);
   void mul(const Mat3x4 &a);
@@ -71,6 +72,14 @@ struct Mat3x4 {
   void transform(const float src[4], float dst[4]);
   double det() { return  m[0][0]*m[1][1]*m[2][2] -m[0][0]*m[1][2]*m[2][1] -m[1][0]*m[0][1]*m[2][2]
                         +m[1][0]*m[0][2]*m[2][1] +m[2][0]*m[0][1]*m[1][2]-m[2][0]*m[0][2]*m[1][1]; }
+
+  static Mat3x4 diagonal(double a, double b, double c) {
+      Mat3x4 r;
+      r.setZero();
+      r.m[0][0] = a; r.m[1][1] = b; r.m[2][2] = c;
+      return r;
+  }
+
 };
 
 std::ostream& operator << (std::ostream& os, const Mat3x4 &cam);

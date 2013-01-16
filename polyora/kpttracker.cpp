@@ -66,6 +66,8 @@ void pyr_keypoint::dispose() {
 kpt_tracker::~kpt_tracker() {
 	clear();
 	kpt_recycler.clear();
+	if (pipeline_stage1) delete pipeline_stage1;
+
 	if (tree) delete tree;
 	if (id_clusters) delete id_clusters;
 #ifdef WITH_YAPE

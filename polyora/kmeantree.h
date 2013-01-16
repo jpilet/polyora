@@ -64,6 +64,7 @@ namespace kmean_tree {
 		descriptor_array data;
 
 		node_t();
+		~node_t() { recursive_delete(false); }
 
 		bool is_leaf() {
 		       	for (unsigned i=0; i<nb_branches; i++) 
@@ -96,6 +97,18 @@ namespace kmean_tree {
 		bool save_to_database(const char *fn);
 
 		void assign_leaf_ids(unsigned *id_ptr);
+
+		void recursive_delete(bool delete_this) {
+			for (unsigned i = 0; i < nb_branches; i++) {
+				if (clusters[i]) {
+					clusters[i]->recursive_delete(true);
+				}
+				clusters[i] = 0;
+			}
+			if (delete_this) {
+				delete this;
+			}
+		}
 	protected:
 		void run_kmean(int nb_iter=32);
 		bool save(sqlite3 *db, sqlite3_stmt *insert_node, sqlite3_stmt *insert_child);

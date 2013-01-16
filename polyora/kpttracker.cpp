@@ -276,6 +276,7 @@ pyr_frame *kpt_tracker::create_frame(IplImage *im)
 		lf->pyr=0;
 		cvReleaseImage(&p->images[0]);
 		p->images[0] = im;
+		lf->cv_pyramid.clear();
 	} else {
 		p = new PyrImage(im, nb_levels, false);
 	}

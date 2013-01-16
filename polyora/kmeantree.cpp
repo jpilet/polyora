@@ -33,7 +33,6 @@
 #include <math.h>
 #include <stdlib.h>
 #include <map>
-#include <unistd.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -50,6 +49,8 @@ static inline double drand48() {
 static inline int finite(float f) {
 	return _finite(f);
 }
+#else
+#include <unistd.h>
 #endif
 
 mean_t::mean_t() {

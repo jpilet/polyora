@@ -39,16 +39,17 @@ void computeObjectPose(const vobj_frame *frame, const vobj_instance *instance,
 
   camera->setPoseFromHomography(instance->transform);
 
-  cv::Mat intrinsics = camera->getIntrinsics();
-  cv::Mat rotation = camera->getExpMapRotation();
-  cv::Mat translation = camera->getTranslation();
-  cv::solvePnP(object_points, projections, intrinsics, camera->distortion,
-               rotation, translation, 
-               true, // use extrinsic guess
-               CV_ITERATIVE);
+  if (projections.size() > 4) {
+	  cv::Mat intrinsics = camera->getIntrinsics();
+	  cv::Mat rotation = camera->getExpMapRotation();
+	  cv::Mat translation = camera->getTranslation();
+	  cv::solvePnP(object_points, projections, intrinsics, camera->distortion,
+				   rotation, translation,
+				   true, // use extrinsic guess
+				   CV_ITERATIVE);
 
-  camera->setExpMapRotation(rotation);
-  camera->setTranslation(translation);
-
+	  camera->setExpMapRotation(rotation);
+	  camera->setTranslation(translation);
+  }
 }
 

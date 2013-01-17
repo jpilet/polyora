@@ -108,9 +108,7 @@ tkeypoint::~tkeypoint() {
 }
 
 int tkeypoint::track_length() {
-	int i=0;
-	for(tkeypoint *p=matches.prev; p; p=p->matches.prev) i++;
-	return i;
+	return (track == 0 ? 1 : track->length);
 }
 
 tracks::tracks(tkeypoint::factory_t *kf, tframe::factory_t *ff, ttrack::factory_t *tf) 

@@ -59,11 +59,19 @@ struct fvec4 {
 
 	operator vec4_32i() { return vec4_32i(_mm_cvttps_epi32(data)); }
 
-	float horizontal_max() { 
+	float horizontal_max() const { 
 		return std::max( 
 			std::max( (*this)[0], (*this)[1] ),
 			std::max( (*this)[2], (*this)[3] ));
 	}
+
+	float horizontal_sum() const {
+		const __m128 t = _mm_add_ps(data, _mm_movehl_ps(data, data));
+		float result;
+		_mm_store_ss(&result, _mm_add_ss(t, _mm_shuffle_ps(t, t, 1)));
+		return result;
+	}
+
 	int horizontal_max_index() { 
 		int best=0;
 		float val = (*this)[0];
@@ -94,5 +102,13 @@ inline fvec4 operator | (const fvec4 &a, const fvec4 &b) { return fvec4(_mm_or_p
 inline fvec4 operator ^ (const fvec4 &a, const fvec4 &b) { return fvec4(_mm_xor_ps(a.data, b.data)); }
 inline fvec4 min(const fvec4 &a, const fvec4 &b) { return fvec4(_mm_min_ps(a.data, b.data)); }
 inline fvec4 max(const fvec4 &a, const fvec4 &b) { return fvec4(_mm_max_ps(a.data, b.data)); }
+
+inline fvec4 loadu(const float *ptr) {
+    return fvec4(_mm_loadu_ps(ptr));
+}
+
+inline void storeu(const fvec4 &value, fvec4 *dest) {
+    _mm_storeu_ps((float *) dest, value.data);
+}
 
 #endif

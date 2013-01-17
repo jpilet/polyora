@@ -50,7 +50,7 @@ namespace kmean_tree {
 		mean_t();
 
 	       void accumulate(float a, float b, descriptor_t *d);
-	       double distance(descriptor_t *d);
+	       float distance(descriptor_t *d);
 	};
 
 	class node_t {
@@ -88,6 +88,7 @@ namespace kmean_tree {
 		unsigned get_id(descriptor_t *d, node_t ** node=0, int depth=0);
 		void print_summary(int depth=0);
 		void cmp_scores(std::multimap<double,int> &scores, descriptor_t *data);
+		int best_cluster(descriptor_t *data);
 
 		bool load(FILE *f);
 		bool save(FILE *f);

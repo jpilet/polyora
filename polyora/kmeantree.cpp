@@ -24,9 +24,7 @@
 #include <math.h>
 #include <assert.h>
 #include "kmeantree.h"
-#ifdef NDEBUG
-#undef NDEBUG
-#endif
+#include "fvec4.h"
 
 #include <string.h>
 #include <iostream>
@@ -112,12 +110,7 @@ unsigned node_t::get_id(descriptor_t *descr, node_t **node, int depth)
 		return id;
 	}
 
-	// find nearest cluster
-	std::multimap<double,int> scores;
-	cmp_scores(scores, descr);
-	std::multimap<double,int>::iterator it = scores.begin();
-
-	return clusters[it->second]->get_id(descr, node, depth+1);
+	return clusters[best_cluster(descr)]->get_id(descr, node, depth+1);
 }
 
 bool node_t::run_and_split() {
@@ -161,6 +154,23 @@ void node_t::cmp_scores(std::multimap<double,int> &scores, descriptor_t *data)
 			scores.insert(std::pair<double,int>(d,i));
 		}
 	}
+}
+
+int node_t::best_cluster(descriptor_t *data)
+{
+	assert(clusters[0]);
+	int best = 0;
+	float dist = clusters[0]->mean.distance(data);
+	for (unsigned i=1; i<nb_branches; i++) {
+		if (clusters[i]) {
+			float d = clusters[i]->mean.distance(data);
+			if (d < dist) {
+				dist = d;
+				best = i;
+			}
+		}
+	}
+	return best;
 }
 
 
@@ -290,7 +300,23 @@ void mean_t::accumulate(float a, float b, descriptor_t *d)
 	*/
 }
 
-double mean_t::distance(descriptor_t *d) {
+namespace {
+float sseDistance(const float* a, const float* b) {
+	fvec4 sum(0);
+	for (int i = 0; i < descriptor_size; i += 4) {
+		fvec4 ai = loadu(a + i);
+		fvec4 bi = loadu(b + i);
+		fvec4 delta = bi - ai;
+		sum += delta * delta;
+	}
+	return sum.horizontal_sum();
+}
+}  // namespace
+
+float mean_t::distance(descriptor_t *d) {
+	if (1) {
+	return sseDistance(mean, d->descriptor); 
+	} else {
 	float dist=0;
 	for (unsigned i=0; i<descriptor_size; i++) {
 		assert(finite(mean[i]));
@@ -302,6 +328,7 @@ double mean_t::distance(descriptor_t *d) {
 	}
 	assert(finite(dist));
 	return dist;
+	}
 }
 
 bool node_t::save(const char *filename) 

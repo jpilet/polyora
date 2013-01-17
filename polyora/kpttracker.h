@@ -62,7 +62,8 @@ class kpt_tracker;
 //! Stores a frame with its pyramid image
 struct pyr_frame : tframe {
 	PyrImage *pyr;
-        std::vector<cv::Mat> cv_pyramid;
+    std::vector<cv::Mat> cv_pyramid;
+    long long timestamp;
 	kpt_tracker *tracker;
 
 	pyr_frame(PyrImage *p, int bits=4);  
@@ -158,19 +159,19 @@ public:
 	/*! Store a new frame, detect features, and match them with previous frame.
 	 *  This method takes care of releasing im.
 	 */
-	virtual pyr_frame *process_frame(IplImage *im);
+	virtual pyr_frame *process_frame(IplImage *im, long long timestamp);
 
 	/*! Pipelined version of process_frame. 
 	 *  Returns 0 on the first call.
 	 *  This method takes care of releasing im.
 	 */
-	virtual pyr_frame *process_frame_pipeline(IplImage *im);
+	virtual pyr_frame *process_frame_pipeline(IplImage *im, long long timestamp);
 
 protected:
-        pyr_frame *create_frame(IplImage *im);
+        pyr_frame *create_frame(IplImage *im, long long timestamp);
         static void buildPyramid(pyr_frame *frame);
 public:
-	pyr_frame *add_frame(IplImage *im);
+	pyr_frame *add_frame(IplImage *im, long long timestamp);
 	void traverse_tree(pyr_frame *frame);
 	void detect_keypoints(pyr_frame *f);
 	void track_ncclk(pyr_frame *f, pyr_frame *lf);

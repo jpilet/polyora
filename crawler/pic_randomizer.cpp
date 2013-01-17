@@ -412,7 +412,7 @@ void pic_randomizer::detect_kpts()
 	} else
 		tracker->set_size(view->width, view->height, 4, 10);
 
-	pyr_frame *frame = tracker->add_frame(view);
+	pyr_frame *frame = tracker->add_frame(view, 0);
 	tracker->detect_keypoints(frame);
 	tracker->traverse_tree(frame);
 } 

@@ -77,7 +77,6 @@ class vobj_frame : public pyr_frame
 {
 public:
 	vobj_instance_vector visible_objects;
-	int timestamp;
 
 	vobj_frame(PyrImage *p, int bits=4) : pyr_frame(p, bits) { } 
 
@@ -112,8 +111,8 @@ public:
                     pyr_track::pyr_track_factory_t *tf=0);
                     //vobj_track::vobj_track_factory_t *tf=0);
 
-	virtual pyr_frame *process_frame(IplImage *im);
-	virtual pyr_frame *process_frame_pipeline(IplImage *im);
+	virtual pyr_frame *process_frame(IplImage *im, long long timestamp);
+	virtual pyr_frame *process_frame_pipeline(IplImage *im, long long timestamp);
 	int track_objects(vobj_frame *frame, vobj_frame *last_frame);
 
 	void remove_visible_objects_from_db(vobj_frame *frame);

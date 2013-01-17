@@ -66,9 +66,9 @@ vobj_tracker::vobj_tracker(int width, int height, int levels, int max_motion,
 	use_incremental_learning=true;
 }
 
-pyr_frame *vobj_tracker::process_frame(IplImage *im)
+pyr_frame *vobj_tracker::process_frame(IplImage *im, long long timestamp)
 {
-	vobj_frame *frame = static_cast<vobj_frame *>(kpt_tracker::process_frame(im));
+	vobj_frame *frame = static_cast<vobj_frame *>(kpt_tracker::process_frame(im, timestamp));
 	vobj_frame *last_frame = static_cast<vobj_frame *>(get_nth_frame(1));
 	track_objects(frame, last_frame);
 	if (use_incremental_learning)
@@ -76,10 +76,10 @@ pyr_frame *vobj_tracker::process_frame(IplImage *im)
 	return frame;
 }
 
-pyr_frame *vobj_tracker::process_frame_pipeline(IplImage *im)
+pyr_frame *vobj_tracker::process_frame_pipeline(IplImage *im, long long timestamp)
 {
 	pyr_frame *new_f=0;
-	if (im) new_f = create_frame(im);
+	if (im) new_f = create_frame(im, timestamp);
 #pragma omp parallel 
 	{
 #pragma omp master

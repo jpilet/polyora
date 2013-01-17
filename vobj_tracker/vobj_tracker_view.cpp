@@ -165,7 +165,7 @@ void vobj_tracker_view::timerEvent(QTimerEvent *) {
 		float frame_processing_time=0;
 
 		TaskTimer::pushTask("Process frame");
-		vobj_frame *pframe = static_cast<vobj_frame *>(tracker->process_frame_pipeline(frame));
+		vobj_frame *pframe = static_cast<vobj_frame *>(tracker->process_frame_pipeline(frame, vs->getId()));
 
 		if (pframe) {
 			setImage(pframe->pyr->images[0]);

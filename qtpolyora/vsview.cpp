@@ -207,11 +207,11 @@ void VSView::timerEvent(QTimerEvent *) {
 		TaskTimer::pushTask("Process frame");
 
 		if (use_pipeline) {
-			pframe = tracker->process_frame_pipeline(frame);
+			pframe = tracker->process_frame_pipeline(frame, vs->getId());
 			if (pframe)
 				setImage(pframe->pyr->images[0]);
 		}else
-			pframe = tracker->process_frame(frame);
+			pframe = tracker->process_frame(frame, vs->getId());
 			//frame_processing_time = frame_processing.elapsed();
 
 		if (record_pts) {

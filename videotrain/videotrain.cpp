@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
         ++num_frame;
 
         // process_frame will detect points and take care of calling cvReleaseImage(im) when required.
-        tracker.process_frame_pipeline(im);
+        tracker.process_frame_pipeline(im, vs->getId());
         cout << "Frame " << num_frame << endl;
     }
 

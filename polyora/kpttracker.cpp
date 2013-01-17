@@ -200,9 +200,9 @@ void kpt_tracker::set_size(int width, int height, int levels, int )
 #endif
 }
 
-pyr_frame *kpt_tracker::process_frame_pipeline(IplImage *im) {
+pyr_frame *kpt_tracker::process_frame_pipeline(IplImage *im, long long timestamp) {
 	pyr_frame *new_f=0;
-	if (im) new_f = create_frame(im);
+	if (im) new_f = create_frame(im, timestamp);
 #pragma omp parallel 
 	{
 #pragma omp master
@@ -231,8 +231,8 @@ pyr_frame *kpt_tracker::process_frame_pipeline(IplImage *im) {
 	return out;
 }
 
-pyr_frame *kpt_tracker::process_frame(IplImage *im) {
-	pyr_frame *f = create_frame(im);
+pyr_frame *kpt_tracker::process_frame(IplImage *im, long long timestamp) {
+	pyr_frame *f = create_frame(im, timestamp);
 	TaskTimer::pushTask("pyramid");
         buildPyramid(f);
 	TaskTimer::popTask();
@@ -257,15 +257,15 @@ void pyr_frame::append_to(tracks &t)
 	tracker=static_cast<kpt_tracker *>(&t);
 }
 
-pyr_frame *kpt_tracker::add_frame(IplImage *im) 
+pyr_frame *kpt_tracker::add_frame(IplImage *im, long long timestamp) 
 {
-	pyr_frame *f = create_frame(im);
+	pyr_frame *f = create_frame(im, timestamp);
         buildPyramid(f);
 	f->append_to(*this);
 	return f;
 }
 
-pyr_frame *kpt_tracker::create_frame(IplImage *im) 
+pyr_frame *kpt_tracker::create_frame(IplImage *im, long long timestamp) 
 {
 
 	// builds the pyramid and prepare memory
@@ -283,7 +283,7 @@ pyr_frame *kpt_tracker::create_frame(IplImage *im)
 
 	//return new pyr_frame(*this, p, 4);
 	pyr_frame *f = (pyr_frame*)(((pyr_frame::pyr_frame_factory_t *) tframe_factory)->create(p,4));
-
+	f->timestamp = timestamp;
 	return f;
 }
 

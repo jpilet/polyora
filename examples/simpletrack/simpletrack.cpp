@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
 		}
 
 		// process_frame will detect points and take care of calling cvReleaseImage(im) when required.
-		tracker.process_frame(im);
+		tracker.process_frame(im, i);
 
 		// get a pointer to the most recent frame
 		pyr_frame *frame= (pyr_frame *)tracker.get_nth_frame(0);

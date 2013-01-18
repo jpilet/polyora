@@ -95,8 +95,8 @@ patch_tagger *patch_tagger::singleton() {
 }
 
 void patch_tagger::precalc() {
-	for (int a=-255; a<256; a++)
-		for (int b=-255;b<256;b++) {
+	for (int a=-255; a<=256; a++)
+		for (int b=-255;b<=256;b++) {
 			double angle = atan2((double)b,(double)a)/(2*M_PI);
 			if (angle<0) angle+=1;
 			if (angle>=1) angle-=1;
@@ -119,6 +119,10 @@ void patch_tagger::precalc() {
 			//if (l1>255) std::cerr << l1 << " should be <255!\n";
 			//if (l2>255) std::cerr << l2 << " should be <255!\n";
 
+			int idx_a = 255 + a;
+			int idx_b = 255 + b;
+			assert(idx_a >= 0 && idx_a < 256);
+			assert(idx_b >= 0 && idx_b < 256);
 			cart2polar_table[255+b][255+a].dir1 = o1;
 			cart2polar_table[255+b][255+a].length1 = l1;
 			cart2polar_table[255+b][255+a].dir2 = o2;
@@ -127,10 +131,7 @@ void patch_tagger::precalc() {
 
 	float c= patch_size/2.0f -1 ;
 
-	cvInitMatHeader(&weight, patch_size, patch_size, CV_32FC1, _weight);
-	cvInitMatHeader(&mask, patch_size, patch_size, CV_8UC1, _mask);
-
-	unsigned char patch_im[patch_size][patch_size][3];
+	//unsigned char patch_im[patch_size][patch_size][3];
 
 	tot_weight = 0;
 	for (unsigned y=0; y<patch_size; y++) {
@@ -172,13 +173,16 @@ void patch_tagger::precalc() {
 			//unsigned w1 = weight_table[y][x].weight1*256/4096;
 			unsigned w2 = weight_table[y][x].weight1*256/4096;
 			unsigned z2 = weight_table[y][x].zone1;
+
+			/*
 			patch_im[y][x][0] =  w2 * (z2&1);
 			patch_im[y][x][1] =  w2*((z2&1) ==0);
 			patch_im[y][x][2] =  w2*((z2&2) ==0);
+			*/
 		}
 	}
-	CvMat mat;
-	cvInitMatHeader(&mat, patch_size, patch_size, CV_8UC3, patch_im);
+	//CvMat mat;
+	//cvInitMatHeader(&mat, patch_size, patch_size, CV_8UC3, patch_im);
 	//cvSaveImage("patch_weight.png", &mat);
 
 	// create random projection tests

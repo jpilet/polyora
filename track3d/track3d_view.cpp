@@ -398,7 +398,7 @@ void track3d_view::augment3d(const vobj_frame *frame,
 	cam[0].flip();
 	cam[1].flip();
 
-        for (int i = 0; i < 1; ++i) {
+        for (int i = 0; i < 2; ++i) {
 	// cout << camera << endl;
 
 	double matrix[4][4];
@@ -419,7 +419,7 @@ void track3d_view::augment3d(const vobj_frame *frame,
 	glVertex3f(0,0,0);
 	glVertex3f(0,480,0);
 	glVertex3f(0,0,0);
-	glVertex3f(0,0,500);
+	glVertex3f(0,0,-500);
 	glEnd();
 
 	glMatrixMode(GL_PROJECTION);

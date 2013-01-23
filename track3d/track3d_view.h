@@ -124,7 +124,7 @@ private:
 
 	// Create a calibrated camera object.
 	PerspectiveCamera camera;
-        std::map<int64_t, KalmanPoseFilter> filters;
+        std::map<int64_t, PoseFilter> filters;
 };
 
 #endif

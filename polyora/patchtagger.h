@@ -85,11 +85,9 @@ protected:
 	random_node random_tests[nb_test];
 
 	static float _weight[patch_size][patch_size];
-	CvMat weight;
 	static float tot_weight;
 
 	unsigned char _mask[patch_size][patch_size];
-	CvMat mask;
 	static void compute_sift_descriptor(float* descr_pt, cv::Mat patch);
 
     // Used only when WITH_PCA_DESCRIPTOR is defined.

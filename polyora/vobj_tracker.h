@@ -59,6 +59,16 @@ public:
 	struct vobj_keypoint_factory_t : pyr_keypoint_factory_t {
                 virtual tkeypoint *create() { return new vobj_keypoint(); }
 	};
+
+        virtual bool should_track() const {
+            if (vobj != 0) {
+                return true;
+            }
+            if (matches.prev != 0 && static_cast<const vobj_keypoint *>(matches.prev)->vobj != 0) {
+                return true;
+            }
+            return false;
+        }
 };
 
 /*

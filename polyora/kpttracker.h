@@ -113,6 +113,7 @@ struct pyr_keypoint : tkeypoint {
         struct pyr_keypoint_factory_t : factory_t {
                 virtual tkeypoint *create() { return new pyr_keypoint(); }
         };
+        virtual bool should_track() const { return false; }
 };
 
 //! Collects track statistics for incremental cluster matching

@@ -391,6 +391,27 @@ void kpt_tracker::detect_keypoints(pyr_frame *f) {
 
 }
 
+bool should_track_point(pyr_keypoint *point) {
+    if (point->matches.next != 0) {
+        // the point is already matched.
+        return false;
+    }
+
+    // If the point was matched and verified, we keep it.
+    // If not, or if no verification code is used, we do not track the point.
+    if (point->should_track()) {
+        return true;
+    }
+
+    int length = point->track_length();
+    if (length > 3 && ((pyr_track*)point->track)->nb_lk_tracked <= length/2) {
+        // The track looks promising enough.
+        return true;
+    }
+
+    return false;
+}
+
 void kpt_tracker::track_ncclk(pyr_frame *f, pyr_frame *lf)
 {
 	// match all points of frame t-1 with points on frame t
@@ -461,8 +482,7 @@ void kpt_tracker::track_ncclk(pyr_frame *f, pyr_frame *lf)
 	for (keypoint_frame_iterator it(lf->points.begin()); !it.end(); ++it) {
 		pyr_keypoint *k = (pyr_keypoint *) it.elem();
 		// a track was lost on frame t-1..
-                if (k->matches.next==0 && k->track_is_longer(3)
-                    && ((pyr_track*)k->track)->nb_lk_tracked <= k->track_length()/2) {
+                if (k->matches.next==0 && should_track_point(k)) {
 			float ku = k->u;
 			float kv = k->v;
                         prev_ft.push_back(cv::Point(ku, kv));

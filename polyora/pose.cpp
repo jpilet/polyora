@@ -53,3 +53,20 @@ void computeObjectPose(const vobj_frame *frame, const vobj_instance *instance,
   }
 }
 
+PoseFilter::PoseFilter(float alpha) : alpha_(alpha) {
+	assert(alpha > 0.0f);
+	assert(alpha <= 1.0f);
+}
+
+void PoseFilter::update(PerspectiveCamera *camera) {
+	cv::addWeighted(rotation_, 1.0 - alpha_, camera->getExpMapRotation(), alpha_, 0, rotation_);
+	camera->setExpMapRotation(rotation_);
+
+	cv::addWeighted(translation_, 1.0 - alpha_, camera->getTranslation(), alpha_, 0, translation_);
+	camera->setTranslation(translation_);
+}
+
+void PoseFilter::reset(const PerspectiveCamera *camera) {
+	rotation_ = camera->getExpMapRotation();
+	translation_ = camera->getTranslation();
+}

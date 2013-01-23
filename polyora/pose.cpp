@@ -39,6 +39,8 @@ void computeObjectPose(const vobj_frame *frame, const vobj_instance *instance,
 
   camera->setPoseFromHomography(instance->transform);
 
+  printf("Computing pose from %d matches.\n", projections.size());
+
   if (projections.size() > 4) {
 	  cv::Mat intrinsics = camera->getIntrinsics();
 	  cv::Mat rotation = camera->getExpMapRotation();
@@ -53,3 +55,75 @@ void computeObjectPose(const vobj_frame *frame, const vobj_instance *instance,
   }
 }
 
+
+KalmanPoseFilter::KalmanPoseFilter() : resetOnNextUpdate_(true) { }
+
+void KalmanPoseFilter::reset(PerspectiveCamera *camera) {
+    resetOnNextUpdate_ = false;
+
+    // The filter has 3 DOF for the position, 3 DoF for the rotation.
+    // The state is made of x + dx, => 12 DoF.
+    kalman_.init(12, 6);
+
+    kalman_.transitionMatrix = *(cv::Mat_<float>(12, 12)
+         << 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, // x1 = x0 + dx0
+            0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+            0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0,
+            0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1,
+            0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, // dx1 = dx0
+            0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1);
+
+    // The measurements correspond to the 6 first state values.
+    cv::setIdentity(kalman_.measurementMatrix);
+
+    cv::setIdentity(kalman_.processNoiseCov, cv::Scalar::all(1.0));
+    cv::setIdentity(kalman_.processNoiseCov(cv::Range(0,3), cv::Range(0,3)),
+                    cv::Scalar::all(1e-7));
+
+    cv::setIdentity(kalman_.measurementNoiseCov, cv::Scalar::all(10));
+    cv::setIdentity(kalman_.measurementNoiseCov(cv::Range(0,3), cv::Range(0,3)),
+                    cv::Scalar::all(1));
+
+    cv::setIdentity(kalman_.errorCovPost, cv::Scalar::all(1));
+
+    kalman_.statePost.rowRange(0, 6) = getMeasurement(camera);
+    kalman_.statePost.rowRange(7, 12) = cv::Mat::zeros(1, 6, CV_32F);
+}
+
+cv::Mat KalmanPoseFilter::getMeasurement(PerspectiveCamera *camera) {
+    cv::Mat measurement(6, 1, CV_32FC1);
+
+    cv::Mat rotation(camera->getExpMapRotation());
+    rotation.convertTo(measurement.rowRange(0, 3), CV_32FC1);
+
+    cv::Mat translation(camera->getTranslation());
+    translation.convertTo(measurement.rowRange(3, 6), CV_32FC1);
+    return measurement;
+}
+
+void KalmanPoseFilter::setCamera(PerspectiveCamera *camera) {
+    cv::Mat rotation;
+    kalman_.statePre.rowRange(0, 3).convertTo(rotation, CV_32FC1);
+    camera->setExpMapRotation(rotation);
+
+    cv::Mat translation;
+    kalman_.statePre.rowRange(3, 6).convertTo(translation, CV_32FC1);
+    camera->setTranslation(translation);
+}
+
+void KalmanPoseFilter::update(PerspectiveCamera *camera) {
+    if (resetOnNextUpdate_) {
+        resetOnNextUpdate_ = false;
+        reset(camera);
+    } else {
+        kalman_.predict();
+        kalman_.correct(getMeasurement(camera));
+        setCamera(camera);
+    }
+}

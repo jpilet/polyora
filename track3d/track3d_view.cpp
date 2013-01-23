@@ -384,31 +384,35 @@ void track3d_view::augment3d(const vobj_frame *frame,
 	// Otherwise, it is possible to set a new resolution:
 	// camera.resizeImage( width, height );
 
+	PerspectiveCamera cam[2];
+
 	// Update the pose
-	double Hd[3][3];
-	for (int i = 0; i< 3; ++i) {
-	    for (int j = 0; j< 3; ++j) {
-        Hd[i][j] = instance->transform[i][j];
-	    }
-	}
+        computeObjectPose(frame, instance, &cam[1]);
+        cam[0] = cam[1];
 
-	PerspectiveCamera cam(camera);
-  computeObjectPose(frame, instance, &cam);
-	cam.flip();
+        if (frame->frames.next == 0 || static_cast<vobj_frame *>(frame->frames.next)->find_instance(instance->object) == 0) {
+            filters[instance->object->id()].reset(&cam[0]);
+        } else {
+            filters[instance->object->id()].update(&cam[0]);
+        }
+	cam[0].flip();
+	cam[1].flip();
 
+        for (int i = 0; i < 1; ++i) {
 	// cout << camera << endl;
 
 	double matrix[4][4];
 	glMatrixMode(GL_PROJECTION);
-	cam.getGlProjection(matrix);
+	cam[i].getGlProjection(matrix);
 	glPushMatrix();
 	glLoadMatrixd(&matrix[0][0]);
 
 	glMatrixMode(GL_MODELVIEW);
-	cam.getGlModelView(matrix);
+	cam[i].getGlModelView(matrix);
 	glPushMatrix();
 	glLoadMatrixd(&matrix[0][0]);
 
+        glColor3f((float)i, 1, 1);
 	glBegin(GL_LINES);
 	glVertex3f(0,0,0);
 	glVertex3f(640,0,0);
@@ -422,6 +426,7 @@ void track3d_view::augment3d(const vobj_frame *frame,
 	glPopMatrix();
 	glMatrixMode(GL_MODELVIEW);
 	glPopMatrix();
+        }
 
 }
 

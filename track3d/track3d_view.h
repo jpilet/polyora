@@ -30,8 +30,9 @@
 
 #include "glbox.h"
 #include "ipltexture.h"
-#include <polyora/polyora.h>
 #include <polyora/camera.h>
+#include <polyora/polyora.h>
+#include <polyora/pose.h>
 
 class track3d_view : public GLBox {
 Q_OBJECT
@@ -123,6 +124,7 @@ private:
 
 	// Create a calibrated camera object.
 	PerspectiveCamera camera;
+        std::map<int64_t, KalmanPoseFilter> filters;
 };
 
 #endif

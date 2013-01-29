@@ -180,8 +180,12 @@ pyr_frame *vobj_tracker::process_frame_pipeline(IplImage *im, long long timestam
 		vobj_frame *last_frame = static_cast<vobj_frame *>(get_nth_frame(1));
 		track_ncclk(pipeline_stage1, last_frame);
 		track_objects(static_cast<vobj_frame *>(pipeline_stage1), last_frame);
-		if (use_incremental_learning)
-			incremental_learning(static_cast<vobj_frame *>(pipeline_stage1), 5, 30, 3000);
+		if (use_incremental_learning) {
+			incremental_learning(static_cast<vobj_frame *>(pipeline_stage1),
+                                             8,  // min track length
+                                             50, // radius
+                                             5000);  // max pts
+                }
 	}
 	}
 	}
@@ -593,37 +597,6 @@ const vobj_instance *vobj_frame::find_instance(const visual_object *obj) const
 	return 0;
 }
 
-static point2d back_project(const point2d &p, const float H[3][3])
-{
-	float su = p.u;
-	float sv = p.v;
-
-	float t4 = H[0][0]*H[1][1];
-	float t6 = H[0][0]*H[1][2];
-	float t8 = H[0][1]*H[1][0];
-	float t10 = H[0][2]*H[1][0];
-	float t12 = H[0][1]*H[2][0];
-	float t14 = H[0][2]*H[2][0];
-	float t17 = 1/(t4*H[2][2]-t6*H[2][1]-t8*H[2][2]+t10*H[2][1]+t12*H[1][2]-t14*H[1][1]);
-	float r[3];
-	r[0] = (H[1][1]*H[2][2]-H[1][2]*H[2][1])*t17*su-(H[0][1]*H[2][2]-H[0][2]*
-			H[2][1])*t17*sv+(H[0][1]*H[1][2]-H[0][2]*H[1][1])*t17;
-	r[1] = -(H[1][0]*H[2][2]-H[1][2]*H[2][0])*t17*su+(H[0][0]*H[2][2]-t14)*
-		t17*sv-(t6-t10)*t17;
-	r[2] = (H[1][0]*H[2][1]-H[1][1]*H[2][0])*t17*su-(H[0][0]*H[2][1]-t12)*t17
-		*sv+(t4-t8)*t17;
-
-	return point2d(r[0]/r[2], r[1]/r[2]);
-}
-
-static point2d homo_transform(const float h[3][3], const point2d &p) 
-{
-	float a = h[0][0]*p.u + h[0][1]*p.v + h[0][2];
-	float b = h[1][0]*p.u + h[1][1]*p.v + h[1][2];
-	float c = h[2][0]*p.u + h[2][1]*p.v + h[2][2];
-	return point2d(a/c, b/c);
-}
-
 void vobj_tracker::incremental_learning(vobj_frame *frame, int track_length, float radius, int max_pts)
 {
 	if (frame->visible_objects.size()==0) 
@@ -660,18 +633,26 @@ void vobj_tracker::incremental_learning(vobj_frame *frame, int track_length, flo
 
 		vobj_instance *base_instance = frame->find_instance(obj);
 
-		point2d backproj = back_project(*k, base_instance->transform);
+		point2d backproj(0, 0);
+                int num_frames = 0;
+		// iterate over the track to average the backprojection
+		for (tracks::keypoint_match_iterator t_it(k);
+                    !t_it.end(); --t_it) {
+                    backproj += transform(base_instance->inverse_transform, *t_it.elem());
+                    num_frames++;
+                }
+                backproj *= 1.0f / num_frames;
 
 		bool ok=true;
-		// iterate over the track, skipping the current frame
-		tracks::keypoint_match_iterator t_it(k);
-		for (--t_it; !t_it.end(); --t_it) {
+		// iterate over the track to check reprojection distance
+		for (tracks::keypoint_match_iterator t_it(k);
+                     !t_it.end(); --t_it) {
 			vobj_keypoint *t_k = (vobj_keypoint *) t_it.elem();
 			vobj_frame *t_f = (vobj_frame *) t_k->frame;
 
 			// compute reprojection error
 			vobj_instance *inst = t_f->find_instance(obj);
-			if (!inst || homo_transform(inst->transform, backproj).dist(*t_k) > 2) {
+			if (!inst || transform(inst->transform, backproj).dist(*t_k) > 3) {
 				ok = false;
 				break;
 			}

@@ -45,6 +45,12 @@ struct point2d {
 	point2d() {}
 
 	float dist(const point2d &a);
+        point2d operator += (const point2d &a) {
+            u += a.u; v += a.v; return *this;
+        }
+        point2d operator *= (float f) {
+            u *= f; v *= f; return *this;
+        }
 };
 
 /*! A point integrated in the "tracks" structure.

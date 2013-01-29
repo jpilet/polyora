@@ -35,16 +35,95 @@ static vobj_keypoint::vobj_keypoint_factory_t default_vobj_keypoint_factory;
 static vobj_frame::vobj_frame_factory_t default_vobj_frame_factory;
 
 namespace {
-bool homography_is_plausible(float H[3][3]) {
-    float trace = H[0][0] + H[1][1];
-    float half_trace = trace * 0.5f;
-    float det = H[0][0] * H[1][1] - H[0][1] * H[1][0];
-    float delta = sqrtf(trace * trace * .25f - det);
-    float l1 = half_trace + delta;
-    float l2 = half_trace - delta;
-    float ratio = l1 / l2;
-    return  (l1 < 2.5*l2 && l2 < 2.5*l1);
+
+point2d transform(const float h[9], const point2d &a)
+{
+	float m[3];
+	for (int i=0; i<3; i++)
+		m[i] = h[i * 3 + 0]*a.u + h[i * 3 + 1]*a.v + h[i * 3 + 2];
+	return point2d(m[0]/m[2], m[1]/m[2]);
 }
+
+point2d transform(const float h[3][3], const point2d &a) {
+	return transform(&h[0][0], a);
+}
+
+point2d transform(const CvMat *H, const point2d &a)
+{
+	return transform(H->data.fl, a);
+}
+
+void homography_inverse(const float m[3][3], float dst[3][3])
+{
+    float t4 = m[0][0]*m[1][1];
+    float t6 = m[0][0]*m[1][2];
+    float t8 = m[0][1]*m[1][0];
+    float t10 = m[0][2]*m[1][0];
+    float t12 = m[0][1]*m[2][0];
+    float t14 = m[0][2]*m[2][0];
+    float t16 = (t4*m[2][2]-t6*m[2][1]-t8*m[2][2]+t10*m[2][1]+t12*m[1][2]-t14*m
+	    [1][1]);
+    float t17 = 1/t16;
+    dst[0][0] = (m[1][1]*m[2][2]-m[1][2]*m[2][1])*t17;
+    dst[0][1] = -(m[0][1]*m[2][2]-m[0][2]*m[2][1])*t17;
+    dst[0][2] = -(-m[0][1]*m[1][2]+m[0][2]*m[1][1])*t17;
+    dst[1][0] = -(m[1][0]*m[2][2]-m[1][2]*m[2][0])*t17;
+    dst[1][1] = (m[0][0]*m[2][2]-t14)*t17;
+    dst[1][2] = -(t6-t10)*t17;
+    dst[2][0] = -(-m[1][0]*m[2][1]+m[1][1]*m[2][0])*t17;
+    dst[2][1] = -(m[0][0]*m[2][1]-t12)*t17;
+    dst[2][2] = (t4-t8)*t17;
+}
+
+bool homography_is_plausible(float H[3][3]) {
+	point2d a = transform(H, point2d(0, 0));
+	point2d b = transform(H, point2d(200, 0));
+	point2d c = transform(H, point2d(200, 200));
+	point2d d = transform(H, point2d(0, 200));
+
+	float edges[4] = {
+		a.dist(b),
+		b.dist(c),
+		c.dist(d),
+		d.dist(a),
+	};
+
+	// If the zoom factor exceeds 10x, we refuse the transform.
+	for (int i = 0; i < 4; ++i) {
+		if (edges[i] < 20 || edges[i] > 2000) {
+			return false;
+		}
+	}
+	float ratio[] = {
+		edges[0] / edges[2],
+		edges[1] / edges[3],
+		edges[0] / edges[1],
+		edges[2] / edges[3],
+	};
+
+	// If the ratio between oposite edges or perpendicular edges
+	// exceeds a threshold, we reject the transform.
+	float max_ratio = 2.5;
+	for (int i = 0; i < 4; ++i) {
+		if (ratio[i] < (1.0f/max_ratio) || ratio[i] > max_ratio) {
+			return false;
+		}
+	}
+	return true;
+}
+
+bool check_epipolar_constraint(const point2d &a, const CvMat *M, const point2d &b, float threshold=3.0f)
+{
+	float *h = M->data.fl;
+	float m[3];
+	for (int i=0; i<3; i++)
+		m[i] = h[i*3]*b.u + h[i*3+1]*b.v + h[i*3+2];
+
+	float d = m[0]*a.u + m[1]*a.v + m[2];
+
+	return fabsf(d) < threshold;
+}
+
 }
 
 vobj_tracker::vobj_tracker(int width, int height, int levels, int max_motion,
@@ -60,7 +139,7 @@ vobj_tracker::vobj_tracker(int width, int height, int levels, int max_motion,
 	vdb(vdb)
 {
 	score_threshold=.00;
-	homography_corresp_threshold = 12;
+	homography_corresp_threshold = 8;
 	fmat_corresp_threshold = 20;
 	max_results=3;
 	use_incremental_learning=true;
@@ -266,27 +345,6 @@ int get_correspondences(vobj_frame *frame, visual_object *obj, visual_object::co
 	return nb_tracked;
 }
 
-static point2d transform(CvMat *H, point2d &a)
-{
-	float *h = H->data.fl;
-	float m[3];
-	for (int i=0; i<3; i++)
-		m[i] = h[i*3]*a.u + h[i*3+1]*a.v + h[i*3+2];
-	return point2d(m[0]/m[2], m[1]/m[2]);
-}
-
-static bool check_epipolar_constraint(const point2d &a, const CvMat *M, const point2d &b, float threshold=3.0f)
-{
-	float *h = M->data.fl;
-	float m[3];
-	for (int i=0; i<3; i++)
-		m[i] = h[i*3]*b.u + h[i*3+1]*b.v + h[i*3+2];
-
-	float d = m[0]*a.u + m[1]*a.v + m[2];
-
-	return fabsf(d) < threshold;
-}
-
 bool vobj_tracker::verify(vobj_frame *frame, visual_object *obj, vobj_instance *instance)
 {
 
@@ -354,7 +412,7 @@ bool vobj_tracker::verify(vobj_frame *frame, visual_object *obj, vobj_instance *
 						frame_pts->data.fl, frame_pts->step, 
 						obj_pts->rows,
 						1000, // max iter, actually 4 times more
-						6, // distance threshold
+						3, // distance threshold
 						50, // stop if we find 50 matches
 						instance->transform,
 						0, // inliers mask
@@ -373,14 +431,15 @@ bool vobj_tracker::verify(vobj_frame *frame, visual_object *obj, vobj_instance *
 			}
 		} else {
 			if (0) {
-				r = cvFindHomography(obj_pts, frame_pts, M, CV_LMEDS, 6, mask);
+				//r = cvFindHomography(obj_pts, frame_pts, M, CV_LMEDS, 6, mask);
+				r = cvFindHomography(obj_pts, frame_pts, M, CV_RANSAC, 1, mask);
 			} else {
 				support = ransac_h4(
 						obj_pts->data.fl, obj_pts->step, 
 						frame_pts->data.fl, frame_pts->step, 
 						obj_pts->rows,
 						100, // max iter
-						3.5, // distance threshold
+						3, // distance threshold
 						100, // stop if we find enough matches
 						instance->transform,
 						0, // inliers mask
@@ -416,7 +475,7 @@ bool vobj_tracker::verify(vobj_frame *frame, visual_object *obj, vobj_instance *
 			vobj_keypoint *k = static_cast<vobj_keypoint *>(corresp[i].frame_kpt);
 			point2d p = transform(M, *corresp[i].obj_kpt);
 			float dist = p.dist(*k);
-			if (dist<6) {
+			if (dist<3) {
 				inliers++;
 			} else {
 				corresp[i].frame_kpt = 0;
@@ -428,6 +487,8 @@ bool vobj_tracker::verify(vobj_frame *frame, visual_object *obj, vobj_instance *
 				}
 			}
 		}
+
+		homography_inverse(instance->transform, instance->inverse_transform);
 	} else if (obj->get_flags() & visual_object::VERIFY_FMAT) {
 		// fundamental matrix
 		inlier_threshold = fmat_corresp_threshold;
@@ -446,8 +507,8 @@ bool vobj_tracker::verify(vobj_frame *frame, visual_object *obj, vobj_instance *
 
 	if (0)
 	std::cout << "  Checking object, " << inliers << " correct matches out of " 
-		<< corresp.size() << "( used: " << n_corresp << " tracked: " << nb_tracked << ")\n";
-	//	<<  " cvFindHomography returned: " << r << std::endl;
+		<< corresp.size() << "( used: " << n_corresp << " tracked: " << nb_tracked << ")\n"
+		<<  " cvFindHomography returned: " << r << std::endl;
 	bool success = (inliers>=inlier_threshold);
 	if (success) instance->object = obj;
 	instance->support = inliers;
@@ -610,7 +671,7 @@ void vobj_tracker::incremental_learning(vobj_frame *frame, int track_length, flo
 
 			// compute reprojection error
 			vobj_instance *inst = t_f->find_instance(obj);
-			if (!inst || homo_transform(inst->transform, backproj).dist(*t_k) > 3) {
+			if (!inst || homo_transform(inst->transform, backproj).dist(*t_k) > 2) {
 				ok = false;
 				break;
 			}

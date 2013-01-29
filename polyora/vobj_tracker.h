@@ -38,6 +38,7 @@ public:
 
 	// Homography or F-mat
 	float transform[3][3];
+	float inverse_transform[3][3];
 	CvMat get_transform() { CvMat m; cvInitMatHeader(&m, 3, 3, CV_32FC1, transform); return m; }
 };
 typedef std::vector<vobj_instance> vobj_instance_vector;

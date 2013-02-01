@@ -404,7 +404,7 @@ bool should_track_point(pyr_keypoint *point) {
     }
 
     int length = point->track_length();
-    if (length > 3 && ((pyr_track*)point->track)->nb_lk_tracked <= length/2) {
+	if (length > 2 && ((pyr_track*)point->track)->nb_lk_tracked - 2 <= length/2) {
         // The track looks promising enough.
         return true;
     }
@@ -482,15 +482,15 @@ void kpt_tracker::track_ncclk(pyr_frame *f, pyr_frame *lf)
 	for (keypoint_frame_iterator it(lf->points.begin()); !it.end(); ++it) {
 		pyr_keypoint *k = (pyr_keypoint *) it.elem();
 		// a track was lost on frame t-1..
-                if (k->matches.next==0 && should_track_point(k)) {
+		if (k->matches.next==0 && should_track_point(k)) {
 			float ku = k->u;
 			float kv = k->v;
-                        prev_ft.push_back(cv::Point(ku, kv));
+			prev_ft.push_back(cv::Point2f(ku, kv));
 
 			// prediction
-			curr_ft.push_back(cv::Point(ku - k->matches.prev->u + ku,
+			curr_ft.push_back(cv::Point2f(ku - k->matches.prev->u + ku,
                                                     kv - k->matches.prev->v + kv)); 
-                        prev_kpt.push_back(k);
+			prev_kpt.push_back(k);
 		}
 	}
         int nft = prev_ft.size();
@@ -501,28 +501,35 @@ void kpt_tracker::track_ncclk(pyr_frame *f, pyr_frame *lf)
                                      cv::Size(patch_size, patch_size),
                                      4,
                                      cv::TermCriteria(cv::TermCriteria::COUNT
-                                                      + cv::TermCriteria::EPS, 3, 0.1),
+                                                      + cv::TermCriteria::EPS, 5, 0.1),
                                      cv::OPTFLOW_USE_INITIAL_FLOW
                                     );
         }
 
 	int nsaved=0;
 
+	int num_lk_failed = 0;
+	int num_important_lk_failed = 0;
 	for (int i=0; i<nft; i++) {
-		if (!lk_status[i]) continue;
-
-                pyr_keypoint *closest = (pyr_keypoint *) f->points.closest_point(curr_ft[i].x, curr_ft[i].y, 2);
-		if (closest) {
-                    if (closest->matches.prev==0) {
-                        set_match(prev_kpt[i], closest);
-                        static_cast<pyr_track *>(closest->track)->nb_lk_tracked++;
-                    }
+		if (!lk_status[i]) {
+			num_lk_failed++;
+			if (prev_kpt[i]->should_track()) {
+				num_important_lk_failed++;
+			}
+			continue;
+		}
+		//std::cout << "Motion: " << prev_ft[i].x << "," << prev_ft[i].y << " -> "
+		//	<< curr_ft[i].x << ", " << curr_ft[i].y << std::endl;
+                pyr_keypoint *closest = (pyr_keypoint *) f->points.closest_point(curr_ft[i].x, curr_ft[i].y, 1);
+		if (closest && closest->matches.prev==0) {
+              set_match(prev_kpt[i], closest);
+              static_cast<pyr_track *>(closest->track)->nb_lk_tracked++;
 		} else {
 			pyr_keypoint *newkpt = kpt_recycler.get_new();
 			float s = 1.0f/(1<<(int)prev_kpt[i]->scale);
 			newkpt->set(f,curr_ft[i].x*s, curr_ft[i].y*s, prev_kpt[i]->scale, patch_size);
 			newkpt->score = prev_kpt[i]->score;
-                        if (cmp_ncc(prev_kpt[i], newkpt)> ncc_threshold) {
+            if (1 || cmp_ncc(prev_kpt[i], newkpt)> ncc_threshold) {
 				set_match(prev_kpt[i],newkpt);
                                 static_cast<pyr_track *>(newkpt->track)->nb_lk_tracked++;
                                 nsaved++;
@@ -535,11 +542,26 @@ void kpt_tracker::track_ncclk(pyr_frame *f, pyr_frame *lf)
 	//if (f->points.size()>0)
 	//cout << ncc_calls << " calls to cmp_ncc, for " << f->points.size() << " points in frame. Avg: " 
 	//	<< ncc_calls / f->points.size() ;
-	/*
-	cout << nmatches << " ncc matches";
-	cout << ", tracked " << nft << " features with LK. Saved " << nsaved << " tracks. ";
-	cout << "tot: " << nmatches + nsaved << " features followed. " << (100.0f*nsaved/(nsaved+nmatches)) << "% LK tracked.\n";
-	*/
+	
+	if (0) {
+		int num_lost = 0;
+		for (keypoint_frame_iterator it(lf->points.begin()); !it.end(); ++it) {
+			pyr_keypoint *kpt = (pyr_keypoint *) it.elem();
+			if (kpt->should_track() && kpt->matches.next == 0) {
+				++num_lost;
+			}
+		}
+		cout << "tracking lost " << num_lost << " important keypoints. "
+			<< "num_lk_failed: " << num_lk_failed << " "
+			<< "num_important_lk_failed: " << num_important_lk_failed << endl;
+	}
+
+	if (0) {
+		cout << nmatches << " ncc matches";
+		cout << ", tracked " << nft << " features with LK. Saved " << nsaved << " tracks. ";
+		cout << "tot: " << nmatches + nsaved << " features followed. " << (100.0f*nsaved/(nsaved+nmatches)) << "% LK tracked.\n";
+	}
+	
 	TaskTimer::popTask();
 	TaskTimer::popTask();
 

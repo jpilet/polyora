@@ -61,6 +61,7 @@ PoseFilter::PoseFilter(float alpha) : alpha_(alpha) {
 }
 
 void PoseFilter::update(PerspectiveCamera *camera) {
+	assert(!rotation_.empty());
 	cv::addWeighted(rotation_, 1.0 - alpha_, camera->getExpMapRotation(), alpha_, 0, rotation_);
 	camera->setExpMapRotation(rotation_);
 

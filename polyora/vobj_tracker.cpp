@@ -48,11 +48,6 @@ point2d transform(const float h[3][3], const point2d &a) {
 	return transform(&h[0][0], a);
 }
 
-point2d transform(const CvMat *H, const point2d &a)
-{
-	return transform(H->data.fl, a);
-}
-
 void homography_inverse(const float m[3][3], float dst[3][3])
 {
     float t4 = m[0][0]*m[1][1];
@@ -112,9 +107,17 @@ bool homography_is_plausible(float H[3][3]) {
 	return true;
 }
 
-bool check_epipolar_constraint(const point2d &a, const CvMat *M, const point2d &b, float threshold=3.0f)
+bool check_homography_constraint(const cv::Mat &H, float distance_threshold,
+								 const point2d &frame_kpt, const point2d &obj_kpt) {
+    if (H.empty()) {
+		return true;
+	}
+	return transform(H.ptr<float>(), obj_kpt).dist(frame_kpt) < distance_threshold;
+}
+
+bool check_epipolar_constraint(const point2d &a, const cv::Mat &M, const point2d &b, float threshold=3.0f)
 {
-	float *h = M->data.fl;
+	const float *h = M.ptr<float>();
 	float m[3];
 	for (int i=0; i<3; i++)
 		m[i] = h[i*3]*b.u + h[i*3+1]*b.v + h[i*3+2];
@@ -124,7 +127,50 @@ bool check_epipolar_constraint(const point2d &a, const CvMat *M, const point2d &
 	return fabsf(d) < threshold;
 }
 
+void info_matches_prev_frame(vobj_frame *frame, visual_object *obj, bool details, std::string info) {
+	if (1) {
+		return;
+	}
+
+	int num_tracked = 0;
+	int num_tracked_and_lost = 0;
+	int num_matched_on_prev_frame = 0;
+	int num_tracked_and_matched = 0;
+	for (tracks::keypoint_frame_iterator it(frame->frames.next->points.begin()); !it.end(); ++it) {
+		vobj_keypoint *k = (vobj_keypoint *) it.elem();
+
+		vobj_keypoint *next = (vobj_keypoint *)k->matches.next;
+
+		if (k->vobj == obj) {
+			num_matched_on_prev_frame++;
+			if (next) {
+				assert(next->matches.prev == k);
+				num_tracked++;
+				if (next->vobj == obj) {
+					++num_tracked_and_matched;
+				} else {
+					num_tracked_and_lost++;
+				}
+			}
+			if (next == 0 || next->vobj != obj) {
+				if (details) {
+					std::cout << "Point lost at " << k->u << ", " << k->v << ". ";
+					if (next) {
+						std::cout << " tracked to: " << next->u << ", " << next->v;
+					} else {
+						std::cout << " not tracked.";
+					}
+					std::cout << std::endl;
+				}
+			}
+		}
+	}
+	std::cout << info << " on previous frame, " << num_matched_on_prev_frame << " points have been matched "
+		<< "(" << num_tracked << " of these where tracked)"
+		<< " Tracked+lost: " << num_tracked_and_lost << ", tracked+matched: " << num_tracked_and_matched << std::endl;
 }
+
+}  // namespace
 
 vobj_tracker::vobj_tracker(int width, int height, int levels, int max_motion,
 		visual_database *vdb, bool glContext,
@@ -139,7 +185,7 @@ vobj_tracker::vobj_tracker(int width, int height, int levels, int max_motion,
 	vdb(vdb)
 {
 	score_threshold=.00;
-	homography_corresp_threshold = 8;
+	homography_corresp_threshold = 12;
 	fmat_corresp_threshold = 20;
 	max_results=3;
 	use_incremental_learning=true;
@@ -182,8 +228,8 @@ pyr_frame *vobj_tracker::process_frame_pipeline(IplImage *im, long long timestam
 		track_objects(static_cast<vobj_frame *>(pipeline_stage1), last_frame);
 		if (use_incremental_learning) {
 			incremental_learning(static_cast<vobj_frame *>(pipeline_stage1),
-                                             8,  // min track length
-                                             50, // radius
+                                             5,  // min track length
+                                             30, // radius
                                              5000);  // max pts
                 }
 	}
@@ -216,7 +262,7 @@ int vobj_tracker::track_objects(vobj_frame *frame, vobj_frame *last_frame)
 	for (std::set<visual_object *>::iterator it(candidates.begin()); it!= candidates.end(); ++it)
 	{
 		vobj_instance instance;
-		if (verify(frame, *it, &instance)) {
+		if (verify(frame, *it, &instance, 3.0f)) {
 			// found object!
 			frame->visible_objects.push_back(instance);
 		}
@@ -281,8 +327,9 @@ int get_correspondences(vobj_frame *frame, visual_object *obj, visual_object::co
 		vobj_keypoint *k = (vobj_keypoint *) it.elem();
 
 		vobj_keypoint *prev = k->prev_match_vobj();
-		if (prev && prev->vobj && prev->obj_kpt)
+		if (prev && prev->vobj)
 		{
+			assert(prev->obj_kpt);
 			if (prev->vobj == obj) {
 				// the point was matched on previous frame
 				corresp.push_back(visual_object::correspondence(prev->obj_kpt, k, 100));
@@ -349,7 +396,52 @@ int get_correspondences(vobj_frame *frame, visual_object *obj, visual_object::co
 	return nb_tracked;
 }
 
-bool vobj_tracker::verify(vobj_frame *frame, visual_object *obj, vobj_instance *instance)
+void filter_correspondences(const cv::Mat H, float distance_threshold,
+							visual_object::correspondence_vector &corresp,
+							vobj_frame *frame, vobj_instance *instance,
+							cv::Mat *obj_pts, cv::Mat *frame_pts) {
+	assert(obj_pts->rows >= corresp.size());
+	assert(obj_pts->cols == 2);
+	assert(frame_pts->rows >= corresp.size());
+	assert(frame_pts->cols == 2);
+	
+	const vobj_instance *previous_instance = frame->find_instance_on_previous_frame(instance->object);
+
+	float *f = frame_pts->ptr<float>();
+	float *o = obj_pts->ptr<float>();
+	int num_inliers = 0;
+	for (visual_object::correspondence_vector::iterator it(corresp.begin()); it!=corresp.end(); ++it) {
+		if (previous_instance && it->frame_kpt->matches.prev) {
+			// point was tracked
+			//point2d object_coordinates = transform(previous_instance->inverse_transform, *it->frame_kpt->matches.prev);
+			point2d object_coordinates(*it->obj_kpt);
+
+			if (check_homography_constraint(H, distance_threshold, *it->frame_kpt, object_coordinates)) {
+				// Inlier
+				*f++ = it->frame_kpt->u;
+				*f++ = it->frame_kpt->v;
+				*o++ = object_coordinates.u;
+				*o++ = object_coordinates.v;
+				num_inliers++;
+			}
+		}
+	}
+	for (visual_object::correspondence_vector::iterator it(corresp.begin()); it!=corresp.end(); ++it) {
+		if (!previous_instance || !it->frame_kpt->matches.prev) {
+			if (check_homography_constraint(H, distance_threshold, *it->frame_kpt, *it->obj_kpt)) {
+				// Inlier
+				*f++ = it->frame_kpt->u;
+				*f++ = it->frame_kpt->v;
+				*o++ = it->obj_kpt->u;
+				*o++ = it->obj_kpt->v;
+				num_inliers++;
+			}
+		}
+	}
+	obj_pts->rows = frame_pts->rows = num_inliers;
+}
+
+bool vobj_tracker::verify(vobj_frame *frame, visual_object *obj, vobj_instance *instance, float distance_threshold)
 {
 
 	instance->object=0;
@@ -362,44 +454,20 @@ bool vobj_tracker::verify(vobj_frame *frame, visual_object *obj, vobj_instance *
 
 	int n_corresp = corresp.size();
 
-	if (nb_tracked >= 10) n_corresp = std::min((int)(1.2*nb_tracked), n_corresp);
+	//if (nb_tracked >= 10) n_corresp = std::min((int)(1.2*nb_tracked), n_corresp);
 
 	if (n_corresp < 10) return 0;
 
-	CvMat *frame_pts = cvCreateMat(corresp.size(), 2, CV_32FC1);
-	CvMat *obj_pts = cvCreateMat(corresp.size(), 2, CV_32FC1);
-	CvMat *mask = cvCreateMat(1, corresp.size(), CV_8UC1);
+	cv::Mat frame_pts(corresp.size(), 2, CV_32FC1);
+	cv::Mat obj_pts(corresp.size(), 2, CV_32FC1);
 
-	float *f = frame_pts->data.fl + nb_tracked*2;
-	float *o = obj_pts->data.fl + nb_tracked*2;
-	float *f_t = frame_pts->data.fl;
-	float *o_t = obj_pts->data.fl;
-	
-	for (visual_object::correspondence_vector::iterator it(corresp.begin()); it!=corresp.end(); ++it) {
-		if (it->correl >=100 ) {
-			// point was tracked
-			*f_t++ = it->frame_kpt->u;
-			*f_t++ = it->frame_kpt->v;
-			//*f_t++ = 1;
-			*o_t++ = it->obj_kpt->u;
-			*o_t++ = it->obj_kpt->v;
-			//*o_t++ = 1;
-		} else {
-			// point was matched
-			*f++ = it->frame_kpt->u;
-			*f++ = it->frame_kpt->v;
-			//*f++ = 1;
-			*o++ = it->obj_kpt->u;
-			*o++ = it->obj_kpt->v;
-			//*o++ = 1;
-		}
-	}
-	obj_pts->rows = frame_pts->rows = mask->cols = n_corresp;
+	filter_correspondences(cv::Mat(), distance_threshold, corresp, frame, instance, &obj_pts, &frame_pts);
+	obj_pts.rows = frame_pts.rows = n_corresp;
 
+	info_matches_prev_frame(frame, obj, false, "Before verification");
 	//std::cout << "  " << nb_tracked << " tracked features, out of " << corresp.size() << " matches. Using only " << n_corresp << " matches.\n";
 
-	CvMat tmat = instance->get_transform();
-	CvMat *M = &tmat;
+	cv::Mat M(3, 3, CV_32FC1, instance->transform);
 
 	int r = 0;
 	int support = -1;
@@ -407,65 +475,58 @@ bool vobj_tracker::verify(vobj_frame *frame, visual_object *obj, vobj_instance *
 	if (nb_tracked>=10) TaskTimer::pushTask("Track");
 	else TaskTimer::pushTask("Detect");
 	if (obj->get_flags() & visual_object::VERIFY_HOMOGRAPHY) {
-		if (nb_tracked <10) {
-			if (0)
-				r = cvFindHomography(obj_pts, frame_pts, M, CV_RANSAC, 6, mask);
-			else {
-				support = ransac_h4(
-						obj_pts->data.fl, obj_pts->step, 
-						frame_pts->data.fl, frame_pts->step, 
-						obj_pts->rows,
-						1000, // max iter, actually 4 times more
-						3, // distance threshold
-						50, // stop if we find 50 matches
-						instance->transform,
-						0, // inliers mask
-						obj_pts->data.fl,frame_pts->data.fl);
-				//std::cout << "Support: " << r << std::endl;
-				if (support >= homography_corresp_threshold) {
-					// refine with LMEDS
-					obj_pts->rows = support;
-					frame_pts->rows = support;
-					if (homography_is_plausible(instance->transform)) {
-					    r = cvFindHomography(obj_pts, frame_pts, M, CV_LMEDS);
-					}
-				} else {
-					r=0;
-				}
+		if (0) {
+			cv::Mat H = cv::findHomography(obj_pts, frame_pts, CV_RANSAC, distance_threshold);
+			if (!H.empty()) {
+				r = 1;
+				H.convertTo(M, CV_32FC1);
 			}
 		} else {
-			if (0) {
-				//r = cvFindHomography(obj_pts, frame_pts, M, CV_LMEDS, 6, mask);
-				r = cvFindHomography(obj_pts, frame_pts, M, CV_RANSAC, 1, mask);
+			support = ransac_h4(
+				obj_pts.ptr<float>(0), obj_pts.step, 
+				frame_pts.ptr<float>(0), frame_pts.step, 
+				obj_pts.rows,
+				(nb_tracked <10 ? 1000 : 200), // max iter, actually 4 times more
+				distance_threshold,
+				(nb_tracked < 10 ? 50 : std::max(20, nb_tracked + 2)), // stop if we find 50 matches
+				instance->transform,
+				0, // inliers mask
+				obj_pts.ptr<float>(0),frame_pts.ptr<float>(0));
+
+			//std::cout << "Support: " << r << std::endl;
+			if (support >= homography_corresp_threshold && homography_is_plausible(instance->transform)) {
+				obj_pts.rows = support;
+				frame_pts.rows = support;
+				int last_support = support;
+				int num_refinement = 0;
+				do {
+					num_refinement++;
+					cv::Mat H = cv::findHomography(obj_pts, frame_pts, 0);
+					if (!H.empty()) {
+						r = 1;
+						H.convertTo(M, CV_32FC1);
+					}
+					filter_correspondences(M, distance_threshold, corresp, frame, instance, &obj_pts, &frame_pts);
+					assert(obj_pts.rows > 0 && obj_pts.rows <= corresp.size());
+					last_support = support;
+					support = obj_pts.rows;
+				} while (support != last_support);
+				std::cout << "num homography refinements: " << num_refinement << std::endl;
 			} else {
-				support = ransac_h4(
-						obj_pts->data.fl, obj_pts->step, 
-						frame_pts->data.fl, frame_pts->step, 
-						obj_pts->rows,
-						100, // max iter
-						3, // distance threshold
-						100, // stop if we find enough matches
-						instance->transform,
-						0, // inliers mask
-						obj_pts->data.fl,frame_pts->data.fl);
-				// refine result
-				obj_pts->rows = support;
-				frame_pts->rows = support;
-				//r = (support > homography_corresp_threshold ? 1:0);
-				r = cvFindHomography(obj_pts, frame_pts, M);
+				r=0;
 			}
 		}
 	} else {
-		r = cvFindFundamentalMat(obj_pts, frame_pts, M, (nb_tracked>=16 ? CV_FM_LMEDS : CV_FM_RANSAC), 4, .99, mask);
+		cv::Mat F = cv::findFundamentalMat(obj_pts, frame_pts, (nb_tracked>=16 ? CV_FM_LMEDS : CV_FM_RANSAC), 4, .99);
+		if (!F.empty()) {
+			F.convertTo(M, CV_32FC1);
+			r = 1;
+		}
 	}
 	TaskTimer::popTask();
 	TaskTimer::popTask();
 	
 	if (r!=1) {
-		cvReleaseMat(&mask);
-		cvReleaseMat(&frame_pts);
-		cvReleaseMat(&obj_pts);
-		corresp.clear();
 		return false;
 	}
 
@@ -477,17 +538,16 @@ bool vobj_tracker::verify(vobj_frame *frame, visual_object *obj, vobj_instance *
 		//std::cout << "Homography checking.\n";
 		for (unsigned i=0; i<corresp.size(); ++i) {
 			vobj_keypoint *k = static_cast<vobj_keypoint *>(corresp[i].frame_kpt);
-			point2d p = transform(M, *corresp[i].obj_kpt);
-			float dist = p.dist(*k);
-			if (dist<3) {
+			if (check_homography_constraint(M, distance_threshold, *k, *corresp[i].obj_kpt)) {
 				inliers++;
 			} else {
 				corresp[i].frame_kpt = 0;
 				vobj_keypoint *prev = k->prev_match_vobj();
 				if (prev && prev->vobj==obj) {
-					if (0)
-					std::cout << "  Point at " << k->u << "," << k->v 
-						<< " was lost. Reproj error: " << dist << std::endl;
+					if (0) {
+						std::cout << "  Point at " << k->u << "," << k->v 
+							<< " was lost. Reproj error: " << k->dist(transform(instance->transform, *corresp[i].obj_kpt)) << std::endl;
+					}
 				}
 			}
 		}
@@ -507,12 +567,11 @@ bool vobj_tracker::verify(vobj_frame *frame, visual_object *obj, vobj_instance *
 		}
 	}
 
-
-
-	if (0)
-	std::cout << "  Checking object, " << inliers << " correct matches out of " 
-		<< corresp.size() << "( used: " << n_corresp << " tracked: " << nb_tracked << ")\n"
-		<<  " cvFindHomography returned: " << r << std::endl;
+	if (inliers != support) {
+		std::cout << "  Checking object, " << inliers << " inliers, support: " << support << " nb corresp: " 
+			<< corresp.size() << "( used: " << n_corresp << " tracked: " << nb_tracked << ")\n"
+			<<  " cvFindHomography returned: " << r << std::endl;
+	}
 	bool success = (inliers>=inlier_threshold);
 	if (success) instance->object = obj;
 	instance->support = inliers;
@@ -532,10 +591,8 @@ bool vobj_tracker::verify(vobj_frame *frame, visual_object *obj, vobj_instance *
 		std::cout << "Matched " << inliers << " features, out of " << obj->nb_points() << " (" << 100.0f*inliers/obj->nb_points() 
 			<< "%)\n";
 	*/
+	info_matches_prev_frame(frame, obj, false, "After verification");
 
-	cvReleaseMat(&mask);
-	cvReleaseMat(&frame_pts);
-	cvReleaseMat(&obj_pts);
 	return success;
 }
 
@@ -595,6 +652,14 @@ const vobj_instance *vobj_frame::find_instance(const visual_object *obj) const
 	for (vobj_instance_vector::const_iterator it=visible_objects.begin(); it!=visible_objects.end(); ++it)
 		if (it->object == obj) return &(*it);
 	return 0;
+}
+
+const vobj_instance *vobj_frame::find_instance_on_previous_frame(const visual_object *obj) const
+{
+	if (frames.next == 0) {
+		return 0;
+	}
+	return static_cast<const vobj_frame *>(frames.next)->find_instance(obj);
 }
 
 void vobj_tracker::incremental_learning(vobj_frame *frame, int track_length, float radius, int max_pts)

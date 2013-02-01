@@ -93,6 +93,7 @@ public:
 
 	vobj_instance *find_instance(const visual_object *obj);
 	const vobj_instance *find_instance(const visual_object *obj) const;
+	const vobj_instance *find_instance_on_previous_frame(const visual_object *obj) const;
 	vobj_keypoint *find_closest_match(float u, float v, float radius);
 
 	struct vobj_frame_factory_t : pyr_frame_factory_t {
@@ -133,7 +134,7 @@ public:
 protected:
 
 	void find_candidates(vobj_frame *frame, std::set<visual_object *> &candidates, vobj_frame *last_frame);
-	bool verify(vobj_frame *frame, visual_object *obj, vobj_instance *instance);
+	bool verify(vobj_frame *frame, visual_object *obj, vobj_instance *instance, float distance_threshold);
 };
 
 /*@}*/

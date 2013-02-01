@@ -21,11 +21,11 @@
 
 #include <assert.h>
 //#define DEBUG_CMPHOMO
-
-/*
 #include <iostream>
 
-std::ostream &operator<<(std::ostream &s, const fvec4 a) {
+
+
+std::ostream &operator<<(std::ostream &s, const fvec4& a) {
 	s << "[";
 	for (int i=0; i<fvec4::size; i++) {
 		s.width(12);
@@ -33,8 +33,9 @@ std::ostream &operator<<(std::ostream &s, const fvec4 a) {
 		s << a[i];
 	}
 	s << "]";
+	return s;
 }
-*/
+
 
 /*! computes the 4 homographies sending [0,0] , [0,1], [1,1] and [1,0]
  * to x,y,z and w.
@@ -211,7 +212,7 @@ int ransac_h4(const float *uv1, int stride1, const float *uv2, int stride2, int 
 		fvec4 corresp[4];
 		//std::cout << "Raw random:\n";
 		for (int i=0;i<4;i++) {
-			corresp[i] = rand_range4(n-i);
+			corresp[i] = rand_range4(std::min(6  + iter, n) -i);
 			//std::cout << corresp[i] << "\n";
 			for (int j=0; j<i; j++) {
 				corresp[i] += ((corresp[j] <= corresp[i]) & fvec4(1));
@@ -233,12 +234,14 @@ int ransac_h4(const float *uv1, int stride1, const float *uv2, int stride2, int 
 				corresp[2]= max(max01,corresp[2]);
 			}
 		}
-		/*
-		std::cout << "After sorting:\n";
-		for (int i=0;i<4;i++) {
-			std::cout << corresp[i] << "\n";
+		
+		if (0) {
+			std::cout << "Iteration: " << iter << ", correspondences after sorting:\n";
+			for (int i=0;i<4;i++) {
+				std::cout << corresp[i] << "\n";
+			}
 		}
-		*/
+		
 
 		// fetch the 4 corresp
 		fvec4 pts1[4][2];
@@ -272,8 +275,8 @@ int ransac_h4(const float *uv1, int stride1, const float *uv2, int stride2, int 
 			g[1] = fvec4( row(i,uv2,stride2)[1] );
 			fvec4 t[2];
 			homography4_transform(p, H, t);
-
-			support += (dist2(t,g) < threshold) & fvec4(1);
+			fvec4 d = dist2(t,g);
+			support += (d < threshold) & fvec4(1 - .1 * (d / threshold));
 		}
 
 		// remember the best solution
@@ -305,7 +308,8 @@ int ransac_h4(const float *uv1, int stride1, const float *uv2, int stride2, int 
 		for (int j=0;j<3; j++)
 			result[i][j] = bestH[i][j][s];
 
-	if (inliers_mask || inliers1 || inliers2) {
+	int final_support = 0;
+
 		float t2 = threshold[0];
 		// TODO: use SIMD
 		float *in1 = inliers1;
@@ -314,6 +318,10 @@ int ransac_h4(const float *uv1, int stride1, const float *uv2, int stride2, int 
 			float t[2];
 			homography_transform(row(i,uv1,stride1), result, t);
 			bool inlier = dist2(t, row(i,uv2,stride2)) < t2;
+
+			if (inlier) {
+				++final_support;
+			}
 
 			if (inliers_mask) inliers_mask[i] = ( inlier ? 0xFF : 0);
 			if (inlier) {
@@ -327,7 +335,7 @@ int ransac_h4(const float *uv1, int stride1, const float *uv2, int stride2, int 
 				}
 			}
 		}	
-	}
+	
 
-	return (int)best_support[s];
+	return final_support;
 }

@@ -454,7 +454,7 @@ bool vobj_tracker::verify(vobj_frame *frame, visual_object *obj, vobj_instance *
 
 	int n_corresp = corresp.size();
 
-	//if (nb_tracked >= 10) n_corresp = std::min((int)(1.2*nb_tracked), n_corresp);
+	//if (nb_tracked >= 10) n_corresp = std::min((int)(1.4*nb_tracked), n_corresp);
 
 	if (n_corresp < 10) return 0;
 
@@ -488,7 +488,7 @@ bool vobj_tracker::verify(vobj_frame *frame, visual_object *obj, vobj_instance *
 				obj_pts.rows,
 				(nb_tracked <10 ? 1000 : 200), // max iter, actually 4 times more
 				distance_threshold,
-				(nb_tracked < 10 ? 50 : std::max(20, nb_tracked + 2)), // stop if we find 50 matches
+				(nb_tracked < 10 ? 50 : std::max(30, nb_tracked + 2)), // stop if we find 50 matches
 				instance->transform,
 				0, // inliers mask
 				obj_pts.ptr<float>(0),frame_pts.ptr<float>(0));
@@ -506,6 +506,8 @@ bool vobj_tracker::verify(vobj_frame *frame, visual_object *obj, vobj_instance *
 						r = 1;
 						H.convertTo(M, CV_32FC1);
 					}
+                                        obj_pts.rows = corresp.size();
+                                        frame_pts.rows = corresp.size();
 					filter_correspondences(M, distance_threshold, corresp, frame, instance, &obj_pts, &frame_pts);
 					assert(obj_pts.rows > 0 && obj_pts.rows <= corresp.size());
 					last_support = support;

@@ -121,8 +121,8 @@ void patch_tagger::precalc() {
 
 			int idx_a = 255 + a;
 			int idx_b = 255 + b;
-			assert(idx_a >= 0 && idx_a < 256);
-			assert(idx_b >= 0 && idx_b < 256);
+			assert(idx_a >= 0 && idx_a < 512);
+			assert(idx_b >= 0 && idx_b < 512);
 			cart2polar_table[255+b][255+a].dir1 = o1;
 			cart2polar_table[255+b][255+a].length1 = l1;
 			cart2polar_table[255+b][255+a].dir2 = o2;

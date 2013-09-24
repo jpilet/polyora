@@ -1,11 +1,8 @@
 
 SET(EXECUTABLE vobj_tracker)
 
-INCLUDE(${QT_USE_FILE})
-
-QT4_WRAP_CPP(QTKPT_MOC_FILES glbox.h vobj_tracker_view.h)
 ADD_EXECUTABLE(${EXECUTABLE} glbox.cpp glbox.h ipltexture.cpp
-	ipltexture.h main.cpp vobj_tracker_view.cpp vobj_tracker_view.h ${QTKPT_MOC_FILES} )
+        ipltexture.h main.cpp vobj_tracker_view.cpp vobj_tracker_view.h )
 
 ADD_DEPENDENCIES(${EXECUTABLE} polyora script)
 

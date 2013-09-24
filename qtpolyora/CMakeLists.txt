@@ -1,11 +1,8 @@
 
 SET(EXECUTABLE qtpolyora)
 
-INCLUDE(${QT_USE_FILE})
-
-QT4_WRAP_CPP(QTKPT_MOC_FILES glbox.h vsview.h)
 ADD_EXECUTABLE(${EXECUTABLE} glbox.cpp glbox.h ipltexture.cpp
-	ipltexture.h main.cpp vsview.cpp vsview.h ${QTKPT_MOC_FILES} )
+        ipltexture.h main.cpp vsview.cpp vsview.h )
 
 ADD_DEPENDENCIES(${EXECUTABLE} polyora)
 

@@ -148,7 +148,7 @@ void STexture::installInEngine(QScriptEngine *engine, QGLWidget *context, unsign
 QString STexture::frameFilename(unsigned frameno)
 {
     QString r;
-    r.sprintf(videoFileName.toAscii().data(), frameno);
+    r.sprintf(videoFileName.toLatin1().data(), frameno);
     return r;
 }
 

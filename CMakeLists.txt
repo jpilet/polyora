@@ -48,15 +48,22 @@ ELSE(OPENGL_FOUND)
 ENDIF(OPENGL_FOUND)
 
 # Qt
-SET(Qt4_FIND_REQUIRED OFF)
-SET(QT_USE_QTOPENGL ON)
-SET(QT_USE_QTSCRIPT ON)
-FIND_PACKAGE(Qt4)
-IF(QT4_FOUND) 
-	MESSAGE(STATUS "Looking for Qt4 - found")
-ELSE(QT4_FOUND) 
-	MESSAGE(STATUS "Looking for Qt4 - not found")
-ENDIF(QT4_FOUND)
+# Find the QtWidgets library
+# Find includes in corresponding build directories
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+# Instruct CMake to run moc automatically when needed.
+set(CMAKE_AUTOMOC ON)
+find_package(Qt5Widgets)
+find_package(Qt5OpenGL)
+find_package(Qt5Script)
+find_package(Qt5Multimedia)
+
+if (Qt5Core_DIR)
+        SET(QT_LIBRARIES Qt5::Widgets Qt5::OpenGL Qt5::Script Qt5::Core Qt5::Multimedia)
+else (Qt5Core_DIR)
+        MESSAGE(ERROR "Qt5 not found")
+endif (Qt5Core_DIR)
+
 
 IF(APPLE)
 	ADD_DEFINITIONS(-DMACOS)
@@ -89,10 +96,10 @@ ADD_SUBDIRECTORY(cluster_ids)
 ADD_SUBDIRECTORY(crawler)
 ADD_SUBDIRECTORY(examples)
 ADD_SUBDIRECTORY(videotrain)
-IF (QT4_FOUND)
+IF (Qt5Core_DIR)
 	ADD_SUBDIRECTORY(qtpolyora)
 	ADD_SUBDIRECTORY(vobj_tracker)
 	ADD_SUBDIRECTORY(track3d)
         ADD_SUBDIRECTORY(script)
-ENDIF (QT4_FOUND)
+ENDIF (Qt5Core_DIR)
 

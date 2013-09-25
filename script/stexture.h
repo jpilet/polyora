@@ -104,6 +104,8 @@ protected:
     QString currentTexName;
 
     bool in_callback;
+
+    QImage image;
 };
 
 Q_DECLARE_METATYPE(STexture *)

@@ -31,17 +31,30 @@ void STexture::release()
 bool STexture::loadDDS(QString s)
 {
     context->makeCurrent();
-    GLuint t = context->bindTexture(s);
-    //qDebug() << "loadDDS(" << s << "): " << t;
 
-    if (t==0) {
-        qDebug() << s << ": invalid texture file.";
-        currentTexName = "";
-    } else {
+    // If the texture is not in cache, we need to load it.
+    if (currentTexName != s || texture == 0) {
+        // Try to load a DDS file first.
+        GLuint t = context->bindTexture(s);
+
+        if (t != 0) {
+            setTexture(t, -1, -1, true);
+        } else {
+            // Not a DDS file? Try a more conventional way of loading images.
+            QImage image;
+            if (image.load(s)) {
+                setTexture(context->bindTexture(image, GL_TEXTURE_2D, GL_RGBA, 0),
+                           -1, -1, true);
+            } else {
+                release();
+                qDebug() << s << ": can't load texture file.";
+                currentTexName = "";
+                return false;
+            }
+        }
         currentTexName = s;
     }
-    setTexture(t,-1,-1,false); // the cache is the texture owner
-    return texture!=0;
+    return true;
 }
 
 bool STexture::clearAndLoadDDS(QString s)
@@ -52,7 +65,7 @@ bool STexture::clearAndLoadDDS(QString s)
 
 void STexture::setTexture(GLuint tex, int w, int h, bool owner)
 {
-    if (tex==texture) return;
+    if (tex == texture) return;
     release();
     this->owner=owner;
     texture=tex;
@@ -115,8 +128,9 @@ void STexture::bind()
         QString s=frameFilename(updateCurrentFrame());
         loadDDS(s);
         //qDebug() << s << ": " << texture;
-    } else if (currentTexName.size()>0)
-        setTexture(context->bindTexture(currentTexName), width, height, false);
+    } else if (currentTexName.size()>0) {
+        loadDDS(currentTexName);
+    }
 
     if (texture) {
         glEnable(GL_TEXTURE_2D);

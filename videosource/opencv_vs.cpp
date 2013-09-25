@@ -104,8 +104,15 @@ void OpenCVVideoSource::stop() {
 
 void OpenCVVideoSource::getSize(int &width, int &height)
 {
-	if (!frame) 
-		frame = cvQueryFrame( capture );
-	width = frame->width;
-	height = frame->height;
+    for (int i = 0; frame == 0 && i < 10; ++i) {
+        frame = cvQueryFrame( capture );
+    }
+    if (!frame) {
+        fprintf(stderr, "OpenCVVideoSource: failed to get video size.\n");
+        width = 640;
+        height = 480;
+    } else {
+        width = frame->width;
+        height = frame->height;
+    }
 }

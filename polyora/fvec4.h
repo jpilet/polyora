@@ -75,7 +75,7 @@ struct fvec4 {
 	int horizontal_max_index() { 
 		int best=0;
 		float val = (*this)[0];
-		for (int i=1; i<3; i++) {
+		for (int i=1; i<4; i++) {
 			if (val < (*this)[i]) {
 				val = (*this)[i];
 				best = i;
